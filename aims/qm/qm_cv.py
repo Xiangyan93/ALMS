@@ -39,7 +39,7 @@ def run(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm):
                                                 tmp_dir=os.path.join(DIR_DATA, 'tmp', str(job.id)))
             sh = job_manager.generate_sh(path=os.path.join(DIR_DATA, 'slurm'), name=job.name, commands=cmds)
             job_manager.submit(sh)
-            job.update_list([sh])
+            job.update_list('sh_file', [sh])
             job.status = Status.SUBMITED
             session.commit()
 
