@@ -44,13 +44,14 @@ class GaussianSimulator(BaseSimulator):
             f.write('%%nprocshared=%d\n' % self.n_jobs)
             if self.memMB is not None:
                 f.write('%%mem=%dMB\n' % self.memMB)
-            f.write('%%chk=%(name)s.chk\n'
+            f.write('%%chk=%(path)s/%(name)s.chk\n'
                     '# opt freq=hindrot %(method)s %(basis)s scale=%(scale).4f temperature=%(T).2f\n'
                     '\n'
                     'Title\n'
                     '\n'
                     '%(charge)i %(multiplicity)i\n'
-                    % ({'name': name,
+                    % ({'path': path,
+                        'name': name,
                         'method': self.method,
                         'basis': self.basis,
                         'scale': scale,
