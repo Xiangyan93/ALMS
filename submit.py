@@ -107,7 +107,7 @@ def predict(target: str):
     args.process_args()
     preds = make_predictions(args, smiles, features, save_prediction=False)
     for i, mol in enumerate(mols):
-        mol.update_ml_property({target: preds[i][0]})
+        mol.update_dict('property_ml', {target: preds[i][0]})
     session.commit()
 
 

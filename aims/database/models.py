@@ -45,6 +45,26 @@ def add_or_query(row, keys: List[str]):
         return result
 
 
+def update_dict(obj, attr: str, p_dict: Dict):
+    content = getattr(obj, attr)
+    if content is None:
+        setattr(obj, attr, json.dumps(p_dict))
+    else:
+        d = json.loads(content)
+        d.update(p_dict)
+        setattr(obj, attr, json.dumps(d))
+
+
+def update_list(obj, attr: str, p_list: List):
+    content = getattr(obj, attr)
+    if content is None:
+        setattr(obj, attr, json.dumps(p_list))
+    else:
+        d = json.loads(content)
+        d.extend(p_list)
+        setattr(obj, attr, json.dumps(d))
+
+
 class Status:
     STARTED = 0  # create task.
     PREPARED = 1  # create all input files.
@@ -68,31 +88,18 @@ class Molecule(Base):
     qm_cv = relationship('QM_CV', back_populates='molecule')
     md_npt = relationship('MD_NPT', back_populates='molecule')
 
-    def features_(self, features_generator: str = None):
-        return json.loads(self.features).get(features_generator)
-
-    def update_ml_property(self, p_dict: Dict):
-        if self.property_ml is None:
-            self.property_ml = json.dumps(p_dict)
-        else:
-            p_ml = json.loads(self.property_ml)
-            p_ml.update(p_dict)
-            self.property_ml = json.dumps(p_ml)
-
-    def update_ms_property(self, p_dict: Dict):
-        if self.property_ms is None:
-            self.property_ms = json.dumps(p_dict)
-        else:
-            p_ms = json.loads(self.property_ms)
-            p_ms.update(p_dict)
-            self.property_ms = json.dumps(p_ms)
-
     @property
     def ms_dir(self) -> str:
         ms_dir = os.path.join(CWD, '..', '..', 'data', 'ms', str(self.id))
         if not os.path.exists(ms_dir):
             os.mkdir(ms_dir)
         return ms_dir
+
+    def features_(self, features_generator: str = None):
+        return json.loads(self.features).get(features_generator)
+
+    def update_dict(self, attr: str, p_dict: Dict):
+        update_dict(self, attr, p_dict)
 
     def create_qm_cv(self, n_conformer: int = 1):
         for i in range(n_conformer):
@@ -107,6 +114,7 @@ class QM_CV(Base):
     status = Column(Integer, default=Status.STARTED)
     seed = Column(Integer, default=0)
     sh_file = Column(Text)
+    result = Column(Text)
 
     molecule_id = Column(Integer, ForeignKey('molecule.id'))
     molecule = relationship('Molecule', back_populates='qm_cv')
@@ -124,6 +132,12 @@ class QM_CV(Base):
     @property
     def name(self) -> str:
         return 'aims_qm_cv_%d' % self.id
+
+    def update_dict(self, attr: str, p_dict: Dict):
+        update_dict(self, attr, p_dict)
+
+    def update_list(self, attr: str, p_list: List):
+        update_list(self, attr, p_list)
 
 
 class MD_NPT(Base):
@@ -147,6 +161,9 @@ class MD_NPT(Base):
         if not os.path.exists(ms_dir):
             os.mkdir(ms_dir)
         return ms_dir
+
+    def update_dict(self, attr: str, p_dict: Dict):
+        update_dict(self, attr, p_dict)
 
     n_components = Column(Integer)
     smiles_list = Column(Text)

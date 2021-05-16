@@ -15,9 +15,9 @@ conda activate aims
    ```
 2. Select which molecules to be simulated using unsupervised active learning.
    ```
-   python3 active_learning.py --stop_uncertainty 0.5
+   python3 active_learning.py --stop_uncertainty 0.3
    ```
 3. Run QM simulation of selected molecules using active learning.
    ```
-   python3 monitor.py --task qm_cv --partition cpu --GAUSSIAN_BIN $GAUSSIAN_BIN --n_conformer 1 --n_cpu 8 --n_jobs 8
+   python3 monitor.py --task qm_cv --partition cpu --GAUSSIAN_EXE $GAUSSIAN_BIN --n_conformer 1 --n_cores 8 --n_jobs 8
    ```

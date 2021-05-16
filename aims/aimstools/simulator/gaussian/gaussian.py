@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
 import os
+import math
 import numpy as np
 from .. import BaseSimulator
 from ...mol3D import Mol3D
@@ -34,8 +35,54 @@ class GaussianSimulator(BaseSimulator):
                     'rm -rf ${JOB_DIR}']
         return commands
 
-    def analyze(self, log: str):
-        pass
+    def analyze(self, log: str) -> Optional[Dict]:
+        content = open(log).read()
+        if content.find('Normal termination') == -1:
+            return None
+        if content.find('Error termination') > -1:
+            return None
+        if content.find('imaginary frequencies') > -1:
+            return None
+
+        result = {'EE': None, 'ZPE': None, 'T': [], 'scale': [], 'cv': [], 'cv_correction': [], 'FE': []}
+        f = open(log)
+        while True:
+            line = f.readline()
+            if line == '':
+                break
+
+            if line.strip().startswith('- Thermochemistry -'):
+                line = f.readline()
+                line = f.readline()
+                T = float(line.strip().split()[1])
+                result['T'].append(T)
+                line = f.readline()
+                if line.strip().startswith('Thermochemistry will use frequencies scaled by'):
+                    scale = float(line.strip().split()[-1][:-1])
+                else:
+                    scale = 1
+                result['scale'].append(scale)
+
+            elif line.strip().startswith('E (Thermal)             CV                S'):
+                line = f.readline()
+                line = f.readline()
+                Cv = float(line.strip().split()[2]) * 4.184
+                result['cv'].append(Cv)
+                line = f.readline()
+                if line.strip().startswith('Corrected for'):
+                    line = f.readline()
+                    Cv_corr = float(line.strip().split()[3]) * 4.184
+                    # Cv_corr might by NaN, this is a bug of gaussian
+                    if math.isnan(Cv_corr):
+                        Cv_corr = Cv
+                    result['cv_correction'].append(Cv_corr)
+                else:
+                    result['cv_correction'].append(Cv)
+
+            elif line.strip().startswith('Sum of electronic and thermal Free Energies='):
+                fe = float(line.strip().split()[7])
+                result['FE'].append(fe)
+        return result
 
     def _create_gjf_cv(self, mol3d: Mol3D, path: str, name: str = 'gaussian',
                        scale: float = 0.9613, T_list: List[float] = None):

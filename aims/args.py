@@ -74,13 +74,17 @@ class MonitorArgs(SoftwareArgs):
     """The number of GPU used in each slurm job."""
     mem: int = None
     """The memory used in each slurm job (MB)."""
-    walltime: int = 24
+    walltime: int = 48
     """Walltime of slurm jobs (hour)."""
-    #
-    n_prepare: int = 20
+    # controller args.
+    n_prepare: int = 100
     """"""
     n_run: int = 50
     """The maximum number of running slurm jobs allowed."""
+    n_analyze: int = 1000
+    """"""
+    t_sleep: int = 10
+    """Sleep time for each iteration (mins). """
     # QM args
     conformer_generator: Literal['openbabel'] = 'openbabel'
     """The algorithm to generate 3D coordinates from SMILES."""
