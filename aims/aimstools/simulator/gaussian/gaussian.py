@@ -65,10 +65,11 @@ class GaussianSimulator(BaseSimulator):
 
             for T in T_list[1:]:
                 f.write('--Link1--\n'
-                        '%%chk=%(name)s.chk\n'
+                        '%%chk=%(path)s/%(name)s.chk\n'
                         '# freq=(readfc,hindrot) geom=allcheck scale=%(scale).4f temperature=%(T).2f\n'
                         '\n'
-                        % ({'name': name,
+                        % ({'path': path,
+                            'name': name,
                             'scale': scale,
                             'T': T
                             })
