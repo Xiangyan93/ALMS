@@ -37,4 +37,13 @@ def run(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm):
         for job in session.query(QM_CV).filter_by(status=Status.PREPARED).limit(n_submit):
             cmds = simulator.get_slurm_commands(file=os.path.join(job.ms_dir, 'gaussian.gjf'),
                                                 tmp_dir=os.path.join(DIR_DATA, 'tmp', str(job.id)))
-            job_manager.generate_sh(path=os.path.join(DIR_DATA, 'slurm'), name='qm_cv_%d' % job.id, commands=cmds)
+            sh = job_manager.generate_sh(path=os.path.join(DIR_DATA, 'slurm'), name=job.name, commands=cmds)
+            job_manager.submit(sh)
+            job.status = Status.SUBMITED
+            session.commit()
+
+
+def analyze(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm):
+    for job in session.query(QM_CV).filter_by(status=Status.SUBMITED).limit(args.n_analyze):
+        if not job_manager.is_running(job.name):
+            pass

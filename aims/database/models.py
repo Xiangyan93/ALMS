@@ -121,6 +121,10 @@ class QM_CV(Base):
             os.mkdir(ms_dir)
         return ms_dir
 
+    @property
+    def name(self) -> str:
+        return 'aims_qm_cv_%d' % self.id
+
 
 class MD_NPT(Base):
     __tablename__ = 'md_npt'

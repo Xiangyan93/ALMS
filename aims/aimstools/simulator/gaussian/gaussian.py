@@ -34,6 +34,9 @@ class GaussianSimulator(BaseSimulator):
                     'rm -rf ${JOB_DIR}']
         return commands
 
+    def analyze(self, log: str):
+        pass
+
     def _create_gjf_cv(self, mol3d: Mol3D, path: str, name: str = 'gaussian',
                        scale: float = 0.9613, T_list: List[float] = None):
         gjf = os.path.join(path, '%s.gjf' % name)

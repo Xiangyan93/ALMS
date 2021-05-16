@@ -4,7 +4,7 @@
 Require GCC (7.*), NVIDIA Driver and CUDA toolkit(>=10.1).  
 ```
 conda env create -f environment.yml
-conda activate graphdot
+conda activate aims
 ```
 
 ## Usages

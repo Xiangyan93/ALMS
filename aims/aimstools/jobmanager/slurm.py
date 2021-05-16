@@ -62,7 +62,7 @@ class Slurm:
     def n_current_jobs(self) -> int:
         return len(self.current_jobs)
 
-    def generate_sh(self, path: str, name: str, commands: List[str], qos: str = None):
+    def generate_sh(self, path: str, name: str, commands: List[str], qos: str = None) -> str:
         """
 
         Parameters
@@ -74,7 +74,7 @@ class Slurm:
 
         Returns
         -------
-
+        The slurm file.
         """
         n_mpi, srun_commands = self._replace_mpirun_srun(commands)
 
@@ -88,7 +88,8 @@ class Slurm:
         else:
             qos_cmd = ''
 
-        with open('%s/%s.sh' % (path, name), 'w') as f:
+        file = '%s/%s.sh' % (path, name)
+        with open(file, 'w') as f:
             f.write('#!/bin/bash\n'
                     '#SBATCH -D %(workdir)s\n'
                     '#SBATCH -J %(name)s\n'
@@ -117,6 +118,7 @@ class Slurm:
                     )
             for cmd in srun_commands:
                 f.write(cmd + '\n')
+        return file
 
     def submit(self, file: str) -> bool:
         cmd = self.submit_cmd + ' ' + file
