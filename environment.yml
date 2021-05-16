@@ -27,6 +27,6 @@ dependencies:
     - sqlalchemy>=1.4.11
     - typed-argument-parser>=1.6.1
     - git+https://github.com/bp-kelley/descriptastorus
-    - git+https://gitlab.com/XiangyanSJTU/graphdot@feature/start_probability
+    - git+https://gitlab.com/XiangyanSJTU/graphdot.git@feature/start_probability
     - rxntools==0.0.2
     - mendeleev==0.6.1
