@@ -1,4 +1,7 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import os
+CWD = os.path.dirname(os.path.abspath(__file__))
 import subprocess
 import sys
 from subprocess import PIPE, Popen
@@ -11,7 +14,7 @@ class DffError(Exception):
 
 
 class DFF:
-    TEMPLATE_DIR = os.path.abspath(os.path.dirname(__file__) + os.sep + '../template/dff/')
+    TEMPLATE_DIR = os.path.join(CWD, 'template')
     '''
     wrappers for DFF
     '''
