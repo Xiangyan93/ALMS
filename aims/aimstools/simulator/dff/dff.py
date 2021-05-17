@@ -157,12 +157,12 @@ class DFF:
             raise DffError('Export failed: %s' % err.decode())
 
     def build_box_after_packmol(self, models: [str], numbers: [int], msd_out, mol_corr,
-                                size: [float] = None, length: float = None, dfi_name='set_corr'):
-        if size != None:
-            if len(size) != 3:
+                                box_size: [float] = None, length: float = None, dfi_name='set_corr'):
+        if box_size != None:
+            if len(box_size) != 3:
                 raise DffError('Invalid box size')
             else:
-                box = size
+                box = box_size
         elif length != None:
             box = [length, length, length]
         else:
