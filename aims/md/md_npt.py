@@ -27,7 +27,7 @@ def build(args: MonitorArgs, simulator: Npt):
             os.mkdir(path)
 
         if job.status == Status.STARTED:
-            simulator.build(path=job.ms_dir, smiles_list=[job.molecule.smiles], export=True)
+            simulator.build(path=path, smiles_list=[job.molecule.smiles], export=True)
             for job_ in job.molecule.jobs:
                 job_.status = Status.PREPARED
             session.commit()
