@@ -22,6 +22,12 @@ def create(args: MonitorArgs):
 
 def build(args: MonitorArgs, simulator: Npt):
     for job in session.query(MD_NPT).filter_by(status=Status.STARTED).limit(args.n_prepare):
-        simulator.build(path=job.ms_dir, smiles_list=[job.molecule.smiles], export=True)
-        job.status = Status.PREPARED
-        session.commit()
+        path = os.path.join(job.molecule.ms_dir, 'md_npt', 'build')
+        if not os.path.exists(path):
+            os.mkdir(path)
+
+        if job.status == Status.STARTED:
+            simulator.build(path=job.ms_dir, smiles_list=[job.molecule.smiles], export=True)
+            for job_ in job.molecule.jobs:
+                job_.status = Status.PREPARED
+            session.commit()
