@@ -21,7 +21,7 @@ class Npt(GmxSimulation):
         n_mol_list, pdb_list, mol2_list, length, box, vol = \
             super()._build(path, smiles_list, n_mol_list, n_mol_ratio, n_atoms, n_mols, length, density)
         print('Build coordinates using Packmol: %s molecules ...' % n_mol_list)
-        self.packmol.build_box(pdb_list, n_mol_list, os.path.join(path, self.pdb), size=[i - 2 for i in box], silent=True)
+        self.packmol.build_box(pdb_list, n_mol_list, os.path.join(path, self.pdb), box_size=[i - 2 for i in box], silent=True)
         print('Create box using DFF ...')
         self.dff.build_box_after_packmol(mol2_list, n_mol_list, os.path.join(path, self.msd), mol_corr=os.path.join(path, self.pdb), size=box)
 
