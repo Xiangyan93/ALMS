@@ -32,8 +32,8 @@ class BaseSimulator:
         molwt_list = []  # molecule weight of each molecule
         density_list = []  # estimated density of each molecule
         for i, smiles in enumerate(smiles_list):
-            pdb = os.path.join(path, 'mol-%i.pdb' % i)
-            mol2 = os.path.join(path, 'mol-%i.mol2' % i)
+            pdb = 'mol-%i.pdb' % i
+            mol2 = 'mol-%i.mol2' % i
             mol3d = Mol3D(smiles)
             mol3d.write(pdb, filetype='pdb')
             mol3d.write(mol2, filetype='mol2')
