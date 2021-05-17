@@ -47,6 +47,9 @@ class Npt(GmxSimulation):
                 gro: str = 'conf.gro', top: str = 'topol.top', T=298, P=1, TANNEAL=800,
                 dt=0.002, nst_eq=int(4E5), nst_run=int(5E5), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(1E3),
                 random_seed=-1, drde=False, tcoupl='langevin', T_basic=298) -> List[str]:
+        cwd = os.getcwd()
+        os.chdir(path)
+
         if os.path.abspath(build_dir) != os.getcwd():
             shutil.copy(os.path.join(build_dir, gro), gro)
             shutil.copy(os.path.join(build_dir, top), top)
@@ -113,5 +116,6 @@ class Npt(GmxSimulation):
         # Use OpenMP instead of MPI when rerun hvap
         cmd = self.gmx.mdrun(name='hvap', nprocs=n_jobs, n_omp=n_jobs, rerun='npt.xtc', get_cmd=True)
         commands.append(cmd)
-
+        
+        os.chdir(cwd)
         return commands
