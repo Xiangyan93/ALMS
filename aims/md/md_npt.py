@@ -16,7 +16,7 @@ def get_NptSimulator(args: MonitorArgs) -> Npt:
 
 def create(args: MonitorArgs):
     for mol in session.query(Molecule).filter_by(active_learning=True).all():
-        mol.create_qm_cv(n_conformer=args.n_conformer)
+        mol.create_md_npt(n_conformer=args.n_conformer)
     session.commit()
 
 
