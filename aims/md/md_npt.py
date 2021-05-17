@@ -28,6 +28,6 @@ def build(args: MonitorArgs, simulator: Npt):
 
         if job.status == Status.STARTED:
             simulator.build(path=path, smiles_list=[job.molecule.smiles], export=True)
-            for job_ in job.molecule.jobs:
+            for job_ in job.molecule.md_npt:
                 job_.status = Status.PREPARED
             session.commit()
