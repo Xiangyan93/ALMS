@@ -17,14 +17,16 @@ class GaussianSimulator:
         self.n_jobs = n_jobs
         self.memMB = memMB
 
-    def build(self, smiles: str, path: str, name: str = 'gaussian', task: Literal['qm_cv'] = 'qm_cv',
-              conformer_generator: Literal['openbabel'] = 'openbabel', seed: int = 0):
+    def prepare(self, smiles: str, path: str, name: str = 'gaussian', task: Literal['qm_cv'] = 'qm_cv',
+              conformer_generator: Literal['openbabel'] = 'openbabel', tmp_dir: str = '.', seed: int = 0) -> List[str]:
         mol3d = Mol3D(smiles, algorithm=conformer_generator, seed=seed)
         print('Build GAUSSIAN input file.')
         if task == 'qm_cv':
             self._create_gjf_cv(mol3d, path=path, name=name, T_list=np.arange(100, 900, 100))
+            file = os.path.join(path, '%s.gjf' % name)
+            return self.get_slurm_commands(file, tmp_dir)
         else:
-            return
+            return []
 
     def get_slurm_commands(self, file: str, tmp_dir: str):
         assert not os.path.exists(tmp_dir)

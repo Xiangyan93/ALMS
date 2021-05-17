@@ -3,6 +3,7 @@
 import os
 CWD = os.path.dirname(os.path.abspath(__file__))
 DIR_DATA = os.path.join(CWD, '..', '..', 'data')
+import json
 from ..args import MonitorArgs
 from ..database import *
 from ..aimstools.simulator.gaussian import GaussianSimulator
@@ -21,7 +22,9 @@ def create(args: MonitorArgs):
 
 def build(args: MonitorArgs, simulator: GaussianSimulator):
     for job in session.query(QM_CV).filter_by(status=Status.STARTED).limit(args.n_prepare):
-        simulator.build(job.molecule.smiles, path=job.ms_dir, seed=job.seed)
+        job.commands = json.dumps(
+            simulator.prepare(job.molecule.smiles, path=job.ms_dir, task='qm_cv',
+                              tmp_dir=os.path.join(DIR_DATA, 'tmp', str(job.id)), seed=job.seed))
         job.status = Status.PREPARED
         session.commit()
 
@@ -30,9 +33,9 @@ def run(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm):
     n_submit = args.n_run - job_manager.n_current_jobs
     if n_submit > 0:
         for job in session.query(QM_CV).filter_by(status=Status.PREPARED).limit(n_submit):
-            cmds = simulator.get_slurm_commands(file=os.path.join(job.ms_dir, 'gaussian.gjf'),
-                                                tmp_dir=os.path.join(DIR_DATA, 'tmp', str(job.id)))
-            sh = job_manager.generate_sh(path=os.path.join(DIR_DATA, 'slurm'), name=job.name, commands=cmds)
+            sh = job_manager.generate_sh(path=os.path.join(DIR_DATA, 'slurm'),
+                                         name=job.name,
+                                         commands=json.loads(job.commands))
             job_manager.submit(sh)
             job.update_list('sh_file', [sh])
             job.status = Status.SUBMITED

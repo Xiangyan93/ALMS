@@ -68,12 +68,13 @@ def update_list(obj, attr: str, p_list: List):
 
 class Status:
     STARTED = 0  # create task.
-    PREPARED = 1  # create all input files.
-    SUBMITED = 2  # submit slurm jobs.
-    DONE = 3  # slurm jobs finished.
-    ANALYZED = 4  # read the log file and extract results successfully.
-    NOT_CONVERGED = 5  # the simultion is not converged, need to be extended.
-    EXTENDED = 6  #
+    BUILD = 1
+    PREPARED = 2  # create all input files.
+    SUBMITED = 3  # submit slurm jobs.
+    DONE = 4  # slurm jobs finished.
+    ANALYZED = 5  # read the log file and extract results successfully.
+    NOT_CONVERGED = 6  # the simultion is not converged, need to be extended.
+    EXTENDED = 7  #
     FAILED = -1  # failed task.
 
 
@@ -135,6 +136,7 @@ class QM_CV(Base):
 
     status = Column(Integer, default=Status.STARTED)
     seed = Column(Integer, default=0)
+    commands = Column(Text)
     sh_file = Column(Text)
     result = Column(Text)
 
@@ -169,6 +171,7 @@ class MD_NPT(Base):
     status = Column(Integer, default=Status.STARTED)
     T = Column(Float)  # in K
     P = Column(Float)  # in bar
+    commands = Column(Text)
     sh_file = Column(Text)
     result = Column(Text)
 
