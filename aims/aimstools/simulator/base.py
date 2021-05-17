@@ -59,7 +59,7 @@ class BaseSimulator:
 
         if length is not None:
             length = length
-            box = [length, length, length]
+            box_size = [length, length, length]
             vol = length ** 3
         else:
             if density is None:
@@ -67,5 +67,5 @@ class BaseSimulator:
                           sum(n_mol_list)
             vol = 10 / 6.022 * mass / density
             length = vol ** (1 / 3)  # assume cubic box
-            box = [length, length, length]
-        return n_mol_list, pdb_list, mol2_list, length, box, vol
+            box_size = [length, length, length]
+        return n_mol_list, pdb_list, mol2_list, length, box_size, vol
