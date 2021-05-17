@@ -18,22 +18,26 @@ class Npt(GmxSimulation):
               n_mol_list: List[int] = None, n_mol_ratio: List[int] = None,
               n_atoms: int = 3000, n_mols: int = 60, length: float = None, density: float = None,
               export: bool = True, ppf: str = None):
+        cwd = os.getcwd()
+        os.chdir(path)
         n_mol_list, pdb_list, mol2_list, length, box_size, vol = \
             super()._build(path, smiles_list, n_mol_list, n_mol_ratio, n_atoms, n_mols, length, density)
         print('Build coordinates using Packmol: %s molecules ...' % n_mol_list)
-        self.packmol.build_box(pdb_list, n_mol_list, os.path.join(path, self.pdb), box_size=[i - 2 for i in box_size], silent=True)
+        self.packmol.build_box(pdb_list, n_mol_list, self.pdb, box_size=[i - 2 for i in box_size], silent=True)
         print('Create box using DFF ...')
-        self.dff.build_box_after_packmol(mol2_list, n_mol_list, os.path.join(path, self.msd), mol_corr=os.path.join(path, self.pdb), box_size=box_size)
+        self.dff.build_box_after_packmol(mol2_list, n_mol_list, self.msd, mol_corr=self.pdb, box_size=box_size)
 
         # build msd for fast export
-        self.packmol.build_box(pdb_list, [1] * len(pdb_list), os.path.join(path, self._single_pdb), box_size=box_size,
+        self.packmol.build_box(pdb_list, [1] * len(pdb_list), self._single_pdb, box_size=box_size,
                                inp_file='build_single.inp', silent=True)
-        self.dff.build_box_after_packmol(mol2_list, [1] * len(pdb_list), os.path.join(path, self._single_msd),
-                                         mol_corr=os.path.join(path, self._single_pdb), box_size=box_size)
+        self.dff.build_box_after_packmol(mol2_list, [1] * len(pdb_list), self._single_msd,
+                                         mol_corr=self._single_pdb, box_size=box_size)
 
         if export:
             self.fast_export_single(ppf=ppf, gro_out='_single.gro', top_out='topol.top')
-            self.gmx.pdb2gro(os.path.join(path, self.pdb), 'conf.gro', [i / 10 for i in box_size], silent=True)  # A to nm
+            self.gmx.pdb2gro(self.pdb, 'conf.gro', [i / 10 for i in box_size], silent=True)  # A to nm
             self.gmx.modify_top_mol_numbers('topol.top', n_mol_list)
             if ppf is not None:
                 shutil.copy(os.path.join(ppf), 'ff.ppf')
+
+        os.chdir(cwd)
