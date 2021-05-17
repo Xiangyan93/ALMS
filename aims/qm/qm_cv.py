@@ -10,12 +10,7 @@ from ..aimstools.jobmanager import Slurm
 
 
 def get_GaussianSimulator(args: MonitorArgs) -> GaussianSimulator:
-    return GaussianSimulator(gauss_exe=args.GAUSSIAN_EXE, n_jobs=args.n_cores, memMB=args.mem)
-
-
-def get_JobManager(args: MonitorArgs) -> Slurm:
-    return Slurm(partition=args.partition, n_nodes=args.n_nodes, n_cores=args.n_cores, n_gpu=args.n_gpu,
-                 walltime=args.walltime)
+    return GaussianSimulator(gauss_exe=args.gaussian_exe, n_jobs=args.n_cores, memMB=args.mem)
 
 
 def create(args: MonitorArgs):
@@ -24,9 +19,9 @@ def create(args: MonitorArgs):
     session.commit()
 
 
-def prepare(args: MonitorArgs, simulator: GaussianSimulator):
+def build(args: MonitorArgs, simulator: GaussianSimulator):
     for job in session.query(QM_CV).filter_by(status=Status.STARTED).limit(args.n_prepare):
-        simulator.prepare(job.molecule.smiles, path=job.ms_dir, seed=job.seed)
+        simulator.build(job.molecule.smiles, path=job.ms_dir, seed=job.seed)
         job.status = Status.PREPARED
         session.commit()
 

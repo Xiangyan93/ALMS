@@ -7,6 +7,7 @@ from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
 import torch
 import numpy as np
 import pandas as pd
+from .aimstools.jobmanager import Slurm
 
 
 class SubmitArgs(Tap):
@@ -43,14 +44,16 @@ class ActiveLearningArgs(Tap):
 
 class SoftwareArgs(Tap):
     # QM softwares
-    GAUSSIAN_EXE: str = None
+    gaussian_exe: str = None
     """Executable file of GAUSSIAN"""
     # MD softwares
     packmol_exe: str = None
     """Executable file of packmol"""
-    dff: str = None
+    dff_root: str = None
     """Directory of Direct Force Field"""
-    gmx: str = None
+    gmx_exe_analysis: str = None
+    """"""
+    gmx_exe_mdrun: str = None
     """"""
 
 
@@ -91,14 +94,24 @@ class MonitorArgs(SoftwareArgs):
     n_conformer: int = 1
     """The number of conformers, this is only valid for QM calculations."""
 
+    @property
+    def job_manager_(self):
+        return Slurm(partition=self.partition, n_nodes=self.n_nodes, n_cores=self.n_cores, n_gpu=self.n_gpu,
+                     walltime=self.walltime)
+
     def process_args(self) -> None:
         ms_dir = os.path.join(CWD, '..', 'data', 'ms')
         if not os.path.exists(ms_dir):
             os.mkdir(ms_dir)
 
         if self.task == 'qm_cv':
-            assert self.GAUSSIAN_EXE is not None
+            assert self.gaussian_exe is not None
             assert self.n_gpu == 0
+        elif self.task == 'md_npt':
+            assert self.packmol_exe is not None
+            assert self.dff_root is not None
+            assert self.gmx_exe_analysis is not None
+            assert self.gmx_exe_mdrun is not None
 
 
 class DMPNNArgs(Tap):

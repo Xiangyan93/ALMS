@@ -4,11 +4,10 @@ from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
 import os
 import math
 import numpy as np
-from .. import BaseSimulator
 from ...mol3D import Mol3D
 
 
-class GaussianSimulator(BaseSimulator):
+class GaussianSimulator:
     def __init__(self, gauss_exe: str,
                  method: str = 'B3LYP', basis: str = '6-31G*', n_jobs: int = 1, memMB: int = None):
         self.gauss_exe = gauss_exe
@@ -18,9 +17,10 @@ class GaussianSimulator(BaseSimulator):
         self.n_jobs = n_jobs
         self.memMB = memMB
 
-    def prepare(self, smiles: str, path: str, name: str = 'gaussian', task: Literal['qm_cv'] = 'qm_cv',
-                conformer_generator: Literal['openbabel'] = 'openbabel', seed: int = 0):
+    def build(self, smiles: str, path: str, name: str = 'gaussian', task: Literal['qm_cv'] = 'qm_cv',
+              conformer_generator: Literal['openbabel'] = 'openbabel', seed: int = 0):
         mol3d = Mol3D(smiles, algorithm=conformer_generator, seed=seed)
+        print('Build GAUSSIAN input file.')
         if task == 'qm_cv':
             self._create_gjf_cv(mol3d, path=path, name=name, T_list=np.arange(100, 900, 100))
         else:
@@ -35,7 +35,8 @@ class GaussianSimulator(BaseSimulator):
                     'rm -rf ${JOB_DIR}']
         return commands
 
-    def analyze(self, log: str) -> Optional[Dict]:
+    @staticmethod
+    def analyze(log: str) -> Optional[Dict]:
         content = open(log).read()
         if content.find('Normal termination') == -1:
             return None
@@ -44,7 +45,7 @@ class GaussianSimulator(BaseSimulator):
         if content.find('imaginary frequencies') > -1:
             return None
 
-        result = {'EE': None, 'ZPE': None, 'T': [], 'scale': [], 'cv': [], 'cv_correction': [], 'FE': []}
+        result = {'EE': None, 'EE+ZPE': None, 'T': [], 'scale': [], 'cv': [], 'cv_corrected': [], 'FE': []}
         f = open(log)
         while True:
             line = f.readline()
@@ -62,7 +63,6 @@ class GaussianSimulator(BaseSimulator):
                 else:
                     scale = 1
                 result['scale'].append(scale)
-
             elif line.strip().startswith('E (Thermal)             CV                S'):
                 line = f.readline()
                 line = f.readline()
@@ -75,13 +75,18 @@ class GaussianSimulator(BaseSimulator):
                     # Cv_corr might by NaN, this is a bug of gaussian
                     if math.isnan(Cv_corr):
                         Cv_corr = Cv
-                    result['cv_correction'].append(Cv_corr)
+                    result['cv_corrected'].append(Cv_corr)
                 else:
-                    result['cv_correction'].append(Cv)
-
+                    result['cv_corrected'].append(Cv)
             elif line.strip().startswith('Sum of electronic and thermal Free Energies='):
                 fe = float(line.strip().split()[7])
                 result['FE'].append(fe)
+            elif result['EE+ZPE'] is None and line.strip().startswith('Sum of electronic and zero-point Energies='):
+                ee_zpe = float(line.strip().split()[6])
+                result['EE+ZPE'] = ee_zpe
+            elif line.strip().startswith(' SCF Done:'):
+                ee = float(line.strip().split()[3])
+                result['EE'] = ee
         return result
 
     def _create_gjf_cv(self, mol3d: Mol3D, path: str, name: str = 'gaussian',

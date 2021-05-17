@@ -9,7 +9,7 @@ from .saved_mol2 import get_smiles_mol2_dict
 
 class Mol3D:
     def __init__(self, smiles: str, read_saved: bool = True, algorithm: Literal['openbabel'] = 'openbabel',
-                 n_conformer: int = 1, seed: int = 0):
+                 n_conformer: int = 0, seed: int = 0):
         try:
             self.mol_py = pybel.readstring('smi', smiles)
         except:
@@ -36,7 +36,19 @@ class Mol3D:
     def spin(self):
         return self.mol_py.spin
 
-    def write(self, file: str = None, filetype: Literal['pdb', 'mol2', 'xyz'] = 'mol2'):
+    @property
+    def n_atoms(self) -> int:
+        return len(self.mol_py.atoms)
+
+    @property
+    def molwt(self):
+        return self.mol_py.molwt
+
+    @property
+    def formula(self):
+        return self.mol_py.formula
+
+    def write(self, file: str = None, filetype: Literal['pdb', 'mol2', 'xyz'] = 'mol2', resname: str = None):
         if self.algorithm == 'openbabel':
             if self.conformers:
                 mol = self.conformers[0]
@@ -49,6 +61,8 @@ class Mol3D:
                 return mol.write(filetype)
 
     def _conformers_openbabel(self, n_select: int = 10, n_try: int = 10) -> List[pybel.Molecule]:
+        if n_select == 0:
+            return []
         random.seed(self.seed)
         ff = openbabel.OBForceField.FindForceField('mmff94')
         if n_try is None or n_try < n_select:

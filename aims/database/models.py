@@ -19,6 +19,7 @@ from sqlalchemy import (
 from sqlalchemy import (
     Column, Integer, Float, Text, Boolean, String, ForeignKey, UniqueConstraint,
 )
+from ..aimstools.utils import get_T_list_from_range
 
 
 Base = declarative_base()
@@ -95,6 +96,18 @@ class Molecule(Base):
             os.mkdir(ms_dir)
         return ms_dir
 
+    @property
+    def tt(self):
+        return json.loads(self.property_ml).get('tt')
+
+    @property
+    def tb(self):
+        return json.loads(self.property_ml).get('tb')
+
+    @property
+    def tc(self):
+        return json.loads(self.property_ml).get('tc')
+
     def features_(self, features_generator: str = None):
         return json.loads(self.features).get(features_generator)
 
@@ -103,8 +116,17 @@ class Molecule(Base):
 
     def create_qm_cv(self, n_conformer: int = 1):
         for i in range(n_conformer):
-            qm_cv = QM_CV(seed=i, molecule_id=self.id)
+            qm_cv = QM_CV(molecule_id=self.id, seed=i)
             add_or_query(qm_cv, ['molecule_id', 'seed'])
+
+    def create_md_npt(self):
+        assert self.tt + 25 < self.tb < self.tc * 0.85
+        T_list = get_T_list_from_range(self.tt + 25, self.tc * 0.85, n_point=8)
+        P_list = [1, 50, 100, 250, 500, 750, 1000]
+        for T in T_list:
+            for P in P_list:
+                md_npt = MD_NPT(molecule_id=self.id, T=T, P=P)
+                add_or_query(md_npt, ['molecule_id', 'T', 'P'])
 
 
 class QM_CV(Base):
@@ -145,9 +167,10 @@ class MD_NPT(Base):
     id = Column(Integer, primary_key=True)
 
     status = Column(Integer, default=Status.STARTED)
-    T = Column(Integer)  # in K
-    P = Column(Integer)  # in bar
+    T = Column(Float)  # in K
+    P = Column(Float)  # in bar
     sh_file = Column(Text)
+    result = Column(Text)
 
     molecule_id = Column(Integer, ForeignKey('molecule.id'))
     molecule = relationship('Molecule', back_populates='md_npt')
@@ -164,21 +187,6 @@ class MD_NPT(Base):
 
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)
-
-    n_components = Column(Integer)
-    smiles_list = Column(Text)
-    n_mol_list = Column(Text, nullable=True)
-    procedure = Column(String(200))
-    t_list = Column(Text)
-    p_list = Column(Text)
-    n_mol_ratio = Column(Text)
-    # name = Column(String(200), default=random_string)
-    #stage = Column(Integer, default=Compute.Stage.SUBMITTED)
-    #status = Column(Integer, default=Compute.Status.DONE)
-    commands = Column(Text, nullable=True)
-    remark = Column(Text, nullable=True)
-    post_result = Column(Text, nullable=True)
-    atom_type = Column(Text)
 
 
 metadata.create_all(engine)
