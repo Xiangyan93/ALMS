@@ -53,7 +53,7 @@ def build(args: MonitorArgs, simulator: Npt):
 
 def run(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
     n_submit = args.n_run - job_manager.n_current_jobs
-    n_jobs_per_mol = session.query(Molecule).first().md_npt.count()
+    n_jobs_per_mol = 56
     if n_submit > 0:
         for mol in _get_n_mols(math.ceil(n_submit * args.n_gmx_multi / n_jobs_per_mol), in_status=Status.PREPARED):
             jobs_to_run = mol.md_npt.filter_by(status=Status.PREPARED)
