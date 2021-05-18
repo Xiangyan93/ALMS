@@ -56,7 +56,10 @@ def run(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
     n_jobs_per_mol = 56
     if n_submit > 0:
         for mol in _get_n_mols(math.ceil(n_submit * args.n_gmx_multi / n_jobs_per_mol), in_status=Status.PREPARED):
-            jobs_to_run = mol.md_npt.filter_by(status=Status.PREPARED)
+            jobs_to_run = []
+            for job in mol.md_npt:
+                if job.status == Status.PREPARED:
+                    jobs_to_run.append(job)
             _submit_jobs(jobs_to_run=jobs_to_run,
                          simulator=simulator,
                          job_manager=job_manager,
