@@ -218,7 +218,7 @@ class MD_NPT(Base):
         sh_file = json.loads(self.sh_file)
         if sh_file:
             assert sh_file[-1].endswith('.sh')
-            return sh_file[-1][:-3]
+            return sh_file[-1].split('/')[-1][:-3]
         else:
             return None
 
