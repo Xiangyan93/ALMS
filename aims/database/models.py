@@ -225,5 +225,8 @@ class MD_NPT(Base):
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)
 
+    def update_list(self, attr: str, p_list: List):
+        update_list(self, attr, p_list)
+
 
 metadata.create_all(engine)
