@@ -122,7 +122,7 @@ def _submit_jobs(jobs_to_run: List, simulator: Npt, job_manager: Slurm, n_gmx_mu
                      for i in range(int(len(jobs_to_run) / n_gmx_multi))]
 
         multi_cmds = json.loads(jobs_to_run[0].commands)
-        multi_dirs = [job.dir for job in jobs_to_run]
+        multi_dirs = [job.ms_dir for job in jobs_to_run]
         commands_list = simulator.gmx.generate_gpu_multidir_cmds(multi_dirs, multi_cmds,
                                                                  n_parallel=n_gmx_multi,
                                                                  n_gpu=job_manager.n_gpu,
