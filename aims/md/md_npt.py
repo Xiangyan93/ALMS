@@ -46,7 +46,7 @@ def build(args: MonitorArgs, simulator: Npt):
 
     for job in session.query(Molecule).filter_by(status=Status.BUILD):
         job.commands = json.dumps(
-            simulator.prepare(path=job.ms_dir, n_jobs=args.n_jobs, T=job.T, P=job.P, drde=True, T_basic=298)
+            simulator.prepare(path=job.ms_dir, n_jobs=args.n_hypercores, T=job.T, P=job.P, drde=True, T_basic=298)
         )
         job.status = Status.PREPARED
         session.commit()
@@ -86,7 +86,7 @@ def extend(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
     for job in jobs_to_run:
         continue_n = json.loads(job.result).get('continue_n')
         assert continue_n is not None
-        commands = simulator.extend(continue_n=continue_n, n_jobs=args.n_cores)
+        commands = simulator.extend(continue_n=continue_n, n_jobs=args.n_hypercores)
     _submit_jobs(jobs_to_run=jobs_to_run,
                  simulator=simulator,
                  job_manager=job_manager,

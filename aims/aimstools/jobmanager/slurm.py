@@ -63,7 +63,7 @@ class Slurm:
         return len(self.current_jobs)
 
     def generate_sh(self, path: str, name: str, commands: List[str], qos: str = None, n_gpu: int = None,
-                    sh: str = None, sh_index: bool = False) -> str:
+                    sh_index: bool = False) -> str:
         """
 
         Parameters
@@ -72,7 +72,6 @@ class Slurm:
         name: Slurm job name.
         commands: The commands to run.
         qos: Use qos priority.
-        sh: Assign the slurm file name. None = name + '.sh'.
         sh_index: Add index to the name.
 
         Returns
@@ -95,9 +94,7 @@ class Slurm:
 
         if sh_index:
             name = name + '-%i' % self._get_local_index_of_job(path=path, name=name)
-        if sh is None:
-            sh = name + '.sh'
-        file = os.path.join(path, sh)
+        file = os.path.join(path, name + '.sh')
 
         with open(file, 'w') as f:
             f.write('#!/bin/bash\n'

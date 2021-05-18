@@ -1,7 +1,14 @@
-# AIMS
+# AIMS (Artifical Intelligence Molecular Simulation)
+AIMS is a program for molecular property data sets. It contains three main parts.
+- Active Learning (Gaussian Process Regression, Marginalized Graph Kernel).
+- High-throughput Quamtum Chemistry Calculation and Force-Field Molecular Dynamics Simulation (GAUSSIAN, GROMACS).
+- Machine Learning Prediction (Direct Message Passing Neural Network).
 
-## Installation
-Require GCC (7.*), NVIDIA Driver and CUDA toolkit(>=10.1).  
+## Dependencies and Installation
+- GAUSSIAN (Quantum Chemistry).
+- DFF, Packmol, GROMACS (Molecular Dynamics).
+- Require GCC (7.*), NVIDIA Driver and CUDA toolkit(>=10.1) (GraphDot).
+ 
 ```
 conda env create -f environment.yml
 conda activate aims

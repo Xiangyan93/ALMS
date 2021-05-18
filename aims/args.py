@@ -71,7 +71,7 @@ class MonitorArgs(SoftwareArgs):
     """The number of CPU nodes used in each slurm job."""
     n_cores: int = 8
     """The number of CPU cores used in each slurm job."""
-    n_threads: int = 8
+    n_hypercores: int = None
     """The number of hyperthreading used in each slurm job."""
     n_gpu: int = 0
     """The number of GPU used in each slurm job."""
@@ -118,6 +118,9 @@ class MonitorArgs(SoftwareArgs):
 
         if self.n_gmx_multi == 1:
             assert self.n_gpu == 0
+
+        if self.n_hypercores is None:
+            self.n_hypercores = self.n_cores
 
 
 class DMPNNArgs(Tap):
