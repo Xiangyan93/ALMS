@@ -8,6 +8,7 @@ from ..args import MonitorArgs
 from ..database import *
 from ..aimstools.simulator.gaussian import GaussianSimulator
 from ..aimstools.jobmanager import Slurm
+from ..aimstools.utils import create_dir
 
 
 def get_GaussianSimulator(args: MonitorArgs) -> GaussianSimulator:
@@ -15,6 +16,11 @@ def get_GaussianSimulator(args: MonitorArgs) -> GaussianSimulator:
 
 
 def create(args: MonitorArgs):
+    # create dir.
+    create_dir(os.path.join(DIR_DATA, 'ms'))
+    create_dir(os.path.join(DIR_DATA, 'slurm'))
+    create_dir(os.path.join(DIR_DATA, 'tmp'))
+    # crete jobs.
     for mol in session.query(Molecule).filter_by(active_learning=True).all():
         mol.create_qm_cv(n_conformer=args.n_conformer)
     session.commit()
@@ -24,7 +30,8 @@ def build(args: MonitorArgs, simulator: GaussianSimulator):
     for job in session.query(QM_CV).filter_by(status=Status.STARTED).limit(args.n_prepare):
         job.commands = json.dumps(
             simulator.prepare(job.molecule.smiles, path=job.ms_dir, task='qm_cv',
-                              tmp_dir=os.path.join(DIR_DATA, 'tmp', str(job.id)), seed=job.seed))
+                              tmp_dir=os.path.join(DIR_DATA, 'tmp', str(job.id)), seed=job.seed)
+        )
         job.status = Status.PREPARED
         session.commit()
 
@@ -33,7 +40,7 @@ def run(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm):
     n_submit = args.n_run - job_manager.n_current_jobs
     if n_submit > 0:
         for job in session.query(QM_CV).filter_by(status=Status.PREPARED).limit(n_submit):
-            sh = job_manager.generate_sh(path=os.path.join(DIR_DATA, 'slurm'),
+            sh = job_manager.generate_sh(path=job.ms_dir,
                                          name=job.name,
                                          commands=json.loads(job.commands))
             job_manager.submit(sh)
@@ -52,3 +59,7 @@ def analyze(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm)
                 job.update_dict('result', result)
                 job.status = Status.ANALYZED
             session.commit()
+
+
+def extend(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm):
+    pass

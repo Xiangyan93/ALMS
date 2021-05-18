@@ -30,3 +30,5 @@ dependencies:
     - git+https://gitlab.com/XiangyanSJTU/graphdot.git@feature/start_probability
     - rxntools==0.0.2
     - mendeleev==0.6.1
+    - physical_validation==1.0.0rc7
+    - panedr>=0.5.2

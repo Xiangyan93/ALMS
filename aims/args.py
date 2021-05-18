@@ -93,6 +93,9 @@ class MonitorArgs(SoftwareArgs):
     """The algorithm to generate 3D coordinates from SMILES."""
     n_conformer: int = 1
     """The number of conformers, this is only valid for QM calculations."""
+    # GMX args
+    n_gmx_multi: int = 1
+    """The number of gmx jobs in each slurm job."""
 
     @property
     def job_manager_(self):
@@ -112,6 +115,9 @@ class MonitorArgs(SoftwareArgs):
             assert self.dff_root is not None
             assert self.gmx_exe_analysis is not None
             assert self.gmx_exe_mdrun is not None
+
+        if self.n_gmx_multi == 1:
+            assert self.n_gpu == 0
 
 
 class DMPNNArgs(Tap):

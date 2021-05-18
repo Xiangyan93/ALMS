@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
+import os
 import subprocess
 
 
@@ -72,3 +73,8 @@ def get_last_line(filename: str):
     except:
         string = ''
     return string
+
+
+def create_dir(dirname: str):
+    if not os.path.exists(dirname):
+        os.mkdir(dirname)

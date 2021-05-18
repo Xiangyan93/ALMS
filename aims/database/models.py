@@ -75,6 +75,7 @@ class Status:
     ANALYZED = 5  # read the log file and extract results successfully.
     NOT_CONVERGED = 6  # the simultion is not converged, need to be extended.
     EXTENDED = 7  #
+    MIXED = 8
     FAILED = -1  # failed task.
 
 
@@ -115,11 +116,17 @@ class Molecule(Base):
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)
 
+    def set_status(self, attr: str, status: int):
+        for job in getattr(self, attr):
+            job.status = status
+
+    # functions for qm_cv
     def create_qm_cv(self, n_conformer: int = 1):
         for i in range(n_conformer):
             qm_cv = QM_CV(molecule_id=self.id, seed=i)
             add_or_query(qm_cv, ['molecule_id', 'seed'])
 
+    # functions for md_npt
     def create_md_npt(self):
         assert self.tt + 25 < self.tb < self.tc * 0.85
         T_list = get_T_list_from_range(self.tt + 25, self.tc * 0.85, n_point=8)
@@ -128,6 +135,20 @@ class Molecule(Base):
             for P in P_list:
                 md_npt = MD_NPT(molecule_id=self.id, T=T, P=P)
                 add_or_query(md_npt, ['molecule_id', 'T', 'P'])
+
+    @property
+    def status_md_npt(self) -> Union[int, List[int]]:
+        status = set([job.status for job in self.md_npt])
+        if len(status) == 1:
+            return self.md_npt[0].status
+        else:
+            if Status.STARTED in status or Status.BUILD in status:
+                self.set_status('md_npt', Status.FAILED)
+                return Status.FAILED
+            else:
+                return list(status)
+
+    # functions for md_npt
 
 
 class QM_CV(Base):
@@ -155,7 +176,7 @@ class QM_CV(Base):
 
     @property
     def name(self) -> str:
-        return 'aims_qm_cv_%d' % self.id
+        return 'aims_qm_cv_%d' % self.molecule.id
 
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)
@@ -187,6 +208,19 @@ class MD_NPT(Base):
         if not os.path.exists(ms_dir):
             os.mkdir(ms_dir)
         return ms_dir
+
+    @property
+    def name(self) -> str:
+        return 'aims_md_npt_ID%d_T%d_P%d' % (self.molecule.id, self.T, self.P)
+
+    @property
+    def slurm_name(self) -> Optional[str]:
+        sh_file = json.loads(self.sh_file)
+        if sh_file:
+            assert sh_file[-1].endswith('.sh')
+            return sh_file[-1][:-3]
+        else:
+            return None
 
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)

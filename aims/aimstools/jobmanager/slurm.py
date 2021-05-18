@@ -62,7 +62,8 @@ class Slurm:
     def n_current_jobs(self) -> int:
         return len(self.current_jobs)
 
-    def generate_sh(self, path: str, name: str, commands: List[str], qos: str = None) -> str:
+    def generate_sh(self, path: str, name: str, commands: List[str], qos: str = None, n_gpu: int = None,
+                    sh: str = None, sh_index: bool = False) -> str:
         """
 
         Parameters
@@ -71,6 +72,8 @@ class Slurm:
         name: Slurm job name.
         commands: The commands to run.
         qos: Use qos priority.
+        sh: Assign the slurm file name. None = name + '.sh'.
+        sh_index: Add index to the name.
 
         Returns
         -------
@@ -78,7 +81,9 @@ class Slurm:
         """
         n_mpi, srun_commands = self._replace_mpirun_srun(commands)
 
-        if self.n_gpu is not None:
+        if n_gpu is not None:
+            gpu_cmd = '#SBATCH --gres=gpu:%i\n' % n_gpu
+        elif self.n_gpu is not None:
             gpu_cmd = '#SBATCH --gres=gpu:%i\n' % self.n_gpu
         else:
             gpu_cmd = ''
@@ -88,7 +93,12 @@ class Slurm:
         else:
             qos_cmd = ''
 
-        file = '%s/%s.sh' % (path, name)
+        if sh_index:
+            name = name + '-%i' % self._get_local_index_of_job(path=path, name=name)
+        if sh is None:
+            sh = name + '.sh'
+        file = os.path.join(path, sh)
+
         with open(file, 'w') as f:
             f.write('#!/bin/bash\n'
                     '#SBATCH -D %(workdir)s\n'
@@ -160,14 +170,6 @@ class Slurm:
         self.stored_jobs.reverse()  # reverse the job list
         self.last_update = datetime.datetime.now()
 
-    def _get_job_from_name(self, name: str) -> Optional[SlurmJob]:
-        # if several job have same name, return the one with the largest id (most recent job)
-        for job in sorted(self.current_jobs, key=lambda x: x.id, reverse=True):
-            if job.name == name:
-                return job
-        else:
-            return None
-
     def _get_all_jobs(self) -> List[SlurmJob]:
         """get all jobs of current user.
 
@@ -192,6 +194,7 @@ class Slurm:
         return jobs
 
     def _get_job_from_str(self, job_str) -> SlurmJob:
+        """create job object from raw information."""
         work_dir = None
         for line in job_str.split():  # split properties
             try:
@@ -219,6 +222,15 @@ class Slurm:
         job = SlurmJob(id=id, name=name, state=state, work_dir=work_dir, user=user, partition=partition)
         return job
 
+    def _get_job_from_name(self, name: str) -> Optional[SlurmJob]:
+        """get job information from job name."""
+        # if several job have same name, return the one with the largest id (most recent job)
+        for job in sorted(self.current_jobs, key=lambda x: x.id, reverse=True):
+            if job.name == name:
+                return job
+        else:
+            return None
+
     def _replace_mpirun_srun(self, commands: List[str]) -> Tuple[int, List[str]]:
         n_mpi = 1
         cmds_replaced = []
@@ -230,3 +242,11 @@ class Slurm:
             else:
                 cmds_replaced.append(cmd)
         return n_mpi, cmds_replaced
+
+    @staticmethod
+    def _get_local_index_of_job(path: str, name: str):
+        """the index assure no slurm jobs overwrite the existed sh file."""
+        i = 0
+        while os.path.exists(os.path.join(path, '%s-%i.sh' % (name, i))):
+            i += 1
+        return i
