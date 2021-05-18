@@ -25,7 +25,7 @@ def create(args: MonitorArgs):
     create_dir(os.path.join(DIR_DATA, 'slurm'))
     create_dir(os.path.join(DIR_DATA, 'tmp'))
     # crete jobs.
-    for mol in session.query(Molecule).filter_by(active_learning=True).all():
+    for mol in session.query(Molecule).filter_by(active_learning=True):
         mol.create_md_npt()
     session.commit()
 
@@ -148,7 +148,7 @@ def _submit_jobs(jobs_to_run: List, simulator: Npt, job_manager: Slurm, n_gmx_mu
 
 def _get_n_mols(n_mol: int, eq_status: int = None, in_status: List[int] = None) -> List[Molecule]:
     mols = []
-    for mol in session.query(Molecule):
+    for mol in session.query(Molecule).filter_by(active_learning=True):
         if eq_status is not None:
             assert mol.status_md_npt.__class__ == int
             if mol.status_md_npt == eq_status:
