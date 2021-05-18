@@ -38,11 +38,10 @@ def build(args: MonitorArgs, simulator: Npt):
             os.mkdir(os.path.join(mol.ms_dir, 'md_npt'))
             os.mkdir(path)
 
+        simulator.build(path=path, smiles_list=[mol.smiles], export=True)
         for job in mol.md_npt:
-            simulator.build(path=path, smiles_list=[job.molecule.smiles], export=True)
-            for job_ in job.molecule.md_npt:
-                job_.status = Status.BUILD
-            session.commit()
+            job.status = Status.BUILD
+        session.commit()
 
     for job in session.query(Molecule).filter_by(status=Status.BUILD):
         job.commands = json.dumps(
@@ -156,3 +155,5 @@ def _get_n_mols(n_mol: int, eq_status: int = None, in_status: List[int] = None) 
             mols.append(mol)
         if len(mols) == n_mol:
             return mols
+    else:
+        return mols

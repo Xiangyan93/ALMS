@@ -24,12 +24,12 @@ conda activate aims
    ```
    python3 active_learning.py --stop_uncertainty 0.3
    ```
-3. Run QM simulation of selected molecules using active learning.
+3. High-throughput QM simulation.
    ```
    python3 monitor.py --task qm_cv --partition cpu --n_cores 8 --n_jobs 8  --gaussian_exe $GAUSSIAN --n_conformer 1
    ```
-4. Run MD simulation of selected molecules using active learning.
+4. High-throughput MD simulation.
    ```
-   python3 monitor.py --task md_npt --partition cpu --n_cores 8 --n_jobs 8 --packmol_exe $PACKMOL --dff_root $DFF --gmx_exe_analysis $gmx_serial --gmx_exe_mdrun $gmx_gpu
+   python3 monitor.py --task md_npt --partition gtx --n_cores 16 --n_hypercores 32 --n_gpu 2 --n_jobs 8 --packmol_exe $PACKMOL --dff_root $DFF --gmx_exe_analysis gmx_serial --gmx_exe_mdrun gmx_gpu
    ```
    
