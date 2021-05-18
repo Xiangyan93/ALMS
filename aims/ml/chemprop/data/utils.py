@@ -54,6 +54,7 @@ def preprocess_smiles_columns(path: str,
 
 def get_task_names(path: str,
                    smiles_columns: Union[str, List[str]] = None,
+                   features_columns: List[str] = None,
                    target_columns: List[str] = None,
                    ignore_columns: List[str] = None) -> List[str]:
     """
@@ -80,7 +81,8 @@ def get_task_names(path: str,
     if not isinstance(smiles_columns, list):
         smiles_columns = preprocess_smiles_columns(path=path, smiles_columns=smiles_columns)
 
-    ignore_columns = set(smiles_columns + ([] if ignore_columns is None else ignore_columns))
+    ignore_columns = set(smiles_columns + features_columns +
+                         ([] if ignore_columns is None else ignore_columns))
 
     target_names = [column for column in columns if column not in ignore_columns]
 
@@ -151,6 +153,7 @@ def filter_invalid_smiles(data: MoleculeDataset) -> MoleculeDataset:
 
 def get_data(path: str,
              smiles_columns: Union[str, List[str]] = None,
+             features_columns: List[str] = None,
              target_columns: List[str] = None,
              ignore_columns: List[str] = None,
              skip_invalid_smiles: bool = True,
@@ -193,6 +196,7 @@ def get_data(path: str,
     if args is not None:
         # Prefer explicit function arguments but default to args if not provided
         smiles_columns = smiles_columns if smiles_columns is not None else args.smiles_columns
+        features_columns = features_columns if features_columns is not None else args.features_columns
         target_columns = target_columns if target_columns is not None else args.target_columns
         ignore_columns = ignore_columns if ignore_columns is not None else args.ignore_columns
         features_path = features_path if features_path is not None else args.features_path
@@ -226,6 +230,7 @@ def get_data(path: str,
             target_columns = get_task_names(
                 path=path,
                 smiles_columns=smiles_columns,
+                features_columns=features_columns,
                 target_columns=target_columns,
                 ignore_columns=ignore_columns,
             )
@@ -243,7 +248,10 @@ def get_data(path: str,
             all_smiles.append(smiles)
             all_targets.append(targets)
 
-            if features_data is not None:
+            if features_columns is not None:
+                features = [float(row[c]) for c in features_columns]
+                all_features.append(features)
+            elif features_data is not None:
                 all_features.append(features_data[i])
 
             if store_row:
@@ -280,7 +288,7 @@ def get_data(path: str,
                 targets=targets,
                 row=all_rows[i] if store_row else None,
                 features_generator=features_generator,
-                features=all_features[i] if features_data is not None else None,
+                features=all_features[i] if all_features else None,
                 atom_features=atom_features[
                     i] if atom_features is not None else None,
                 atom_descriptors=atom_descriptors[

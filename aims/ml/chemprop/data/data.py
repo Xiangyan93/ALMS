@@ -33,6 +33,7 @@ def empty_cache():
     r"""Empties the cache of :class:`~chemprop.features.MolGraph` and RDKit molecules."""
     SMILES_TO_GRAPH.clear()
     SMILES_TO_MOL.clear()
+    SMILES_TO_FEATURES.clear()
 
 
 # Cache of RDKit molecules
@@ -49,6 +50,20 @@ def set_cache_mol(cache_mol: bool) -> None:
     r"""Sets whether RDKit molecules will be cached."""
     global CACHE_MOL
     CACHE_MOL = cache_mol
+
+
+CACHE_FEATURES = True
+SMILES_TO_FEATURES: Dict[str, np.ndarray] = {}
+
+
+def cache_features() -> bool:
+    return CACHE_FEATURES
+
+
+def set_cache_features(cache_features: bool) -> None:
+    global CACHE_FEATURES
+    CACHE_FEATURES = cache_features
+
 
 
 class MoleculeDatapoint:
@@ -77,13 +92,9 @@ class MoleculeDatapoint:
         :param overwrite_default_bond_features: Boolean to overwrite default bond features by bond_features
 
         """
-        if features is not None and features_generator is not None:
-            raise ValueError('Cannot provide both loaded features and a features generator.')
-
         self.smiles = smiles
         self.targets = targets
         self.row = row
-        self.features = features
         self.features_generator = features_generator
         self.atom_descriptors = atom_descriptors
         self.atom_features = atom_features
@@ -96,26 +107,34 @@ class MoleculeDatapoint:
 
         # Generate additional features if given a generator
         if self.features_generator is not None:
-            self.features = []
+            assert len(self.smiles) == 1
+            if smiles[0] in SMILES_TO_FEATURES:
+                self.features = SMILES_TO_FEATURES[smiles[0]]
+            else:
+                self.features = []
+                for fg in self.features_generator:
+                    features_generator = get_features_generator(fg)
+                    for m in self.mol:
+                        if not self.is_reaction:
+                            if m is not None and m.GetNumHeavyAtoms() > 0:
+                                self.features.extend(features_generator(m))
+                            # for H2
+                            elif m is not None and m.GetNumHeavyAtoms() == 0:
+                                # not all features are equally long, so use methane as dummy molecule to determine length
+                                self.features.extend(np.zeros(len(features_generator(Chem.MolFromSmiles('C')))))
+                        else:
+                            if m[0] is not None and m[1] is not None and m[0].GetNumHeavyAtoms() > 0:
+                                self.features.extend(features_generator(m[0]))
+                            elif m[0] is not None and m[1] is not None and m[0].GetNumHeavyAtoms() == 0:
+                                self.features.extend(np.zeros(len(features_generator(Chem.MolFromSmiles('C')))))
 
-            for fg in self.features_generator:
-                features_generator = get_features_generator(fg)
-                for m in self.mol:
-                    if not self.is_reaction:
-                        if m is not None and m.GetNumHeavyAtoms() > 0:
-                            self.features.extend(features_generator(m))
-                        # for H2
-                        elif m is not None and m.GetNumHeavyAtoms() == 0:
-                            # not all features are equally long, so use methane as dummy molecule to determine length
-                            self.features.extend(np.zeros(len(features_generator(Chem.MolFromSmiles('C')))))                           
-                    else:
-                        if m[0] is not None and m[1] is not None and m[0].GetNumHeavyAtoms() > 0:
-                            self.features.extend(features_generator(m[0]))
-                        elif m[0] is not None and m[1] is not None and m[0].GetNumHeavyAtoms() == 0:
-                            self.features.extend(np.zeros(len(features_generator(Chem.MolFromSmiles('C')))))   
-                    
+                self.features = np.array(self.features)
+                SMILES_TO_FEATURES[smiles[0]] = self.features
+        else:
+            self.features = None
 
-            self.features = np.array(self.features)
+        if features is not None:
+            self.features = features if self.features is None else np.concatenate([self.features, features])
 
         # Fix nans in features
         replace_token = 0
