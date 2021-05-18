@@ -43,7 +43,7 @@ def build(args: MonitorArgs, simulator: Npt):
             job.status = Status.BUILD
         session.commit()
 
-    for job in session.query(Molecule).filter_by(status=Status.BUILD):
+    for job in session.query(MD_NPT).filter_by(status=Status.BUILD):
         job.commands = json.dumps(
             simulator.prepare(path=job.ms_dir, n_jobs=args.n_hypercores, T=job.T, P=job.P, drde=True, T_basic=298)
         )
