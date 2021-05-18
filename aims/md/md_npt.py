@@ -149,10 +149,14 @@ def _submit_jobs(jobs_to_run: List, simulator: Npt, job_manager: Slurm, n_gmx_mu
 def _get_n_mols(n_mol: int, eq_status: int = None, in_status: List[int] = None) -> List[Molecule]:
     mols = []
     for mol in session.query(Molecule):
-        if eq_status is not None and mol.status_md_npt == eq_status:
-            mols.append(mol)
-        if in_status is not None and mol.status_md_npt in in_status:
-            mols.append(mol)
+        if eq_status is not None:
+            assert mol.status_md_npt.__class__ == int
+            if mol.status_md_npt == eq_status:
+                mols.append(mol)
+        elif in_status is not None:
+            assert mol.status_md_npt.__class__ == list
+            if in_status in mol.status_md_npt:
+                mols.append(mol)
         if len(mols) == n_mol:
             return mols
     else:
