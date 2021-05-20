@@ -6,6 +6,7 @@ CWD = os.path.dirname(os.path.abspath(__file__))
 DIR_DATA = os.path.join(CWD, '..', '..', 'data')
 import math
 import json
+from tqdm import tqdm
 from multiprocessing import Pool
 from ..args import MonitorArgs
 from ..database import *
@@ -78,21 +79,21 @@ def analyze(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
             jobs_to_analyze.append(job)
 
     n_analyze = int(math.ceil(len(jobs_to_analyze) / args.n_jobs))
-    for i in range(n_analyze):
+    for i in tqdm(range(n_analyze), total=n_analyze):
         jobs = jobs_to_analyze[i * args.n_jobs:(i+1) * args.n_jobs]
         with Pool(args.n_jobs) as p:
             results = p.map(lambda x: simulator.analyze(path=x.ms_dir), jobs)
 
-    for i, job in enumerate(jobs_to_analyze):
-        result = results[i]
-        job.update_dict('result', result)
-        if result.get('failed'):
-            job.status = Status.FAILED
-        elif result.get('continue'):
-            job.status = Status.NOT_CONVERGED
-        else:
-            job.status = Status.ANALYZED
-        session.commit()
+        for j, job in enumerate(jobs):
+            result = results[j]
+            job.update_dict('result', result)
+            if result.get('failed'):
+                job.status = Status.FAILED
+            elif result.get('continue'):
+                job.status = Status.NOT_CONVERGED
+            else:
+                job.status = Status.ANALYZED
+            session.commit()
 
 
 def extend(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
