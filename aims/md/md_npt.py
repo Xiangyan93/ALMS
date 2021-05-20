@@ -6,8 +6,7 @@ CWD = os.path.dirname(os.path.abspath(__file__))
 DIR_DATA = os.path.join(CWD, '..', '..', 'data')
 import math
 import json
-from joblib import Parallel, delayed
-from sklearn.utils.fixes import _joblib_parallel_args
+from multiprocessing import Pool
 from ..args import MonitorArgs
 from ..database import *
 from ..aimstools.simulator.gromacs import Npt
@@ -74,16 +73,16 @@ def _analyze(simulator: Npt, job_dir: str):
 def analyze(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
     print('Analyzing results of md_npt')
     jobs_to_analyze = []
-    jobs_dir = []
     for job in session.query(MD_NPT).filter_by(status=Status.SUBMITED).limit(args.n_analyze):
         if not job_manager.is_running(job.slurm_name):
             jobs_to_analyze.append(job)
-            jobs_dir.append(job.ms_dir)
 
-    results = Parallel(n_jobs=args.n_jobs, verbose=True, **_joblib_parallel_args(prefer='processes'))(
-        delayed(lambda x: simulator.analyze(path=job_dir))(job_dir)
-        for job_dir in jobs_dir
-    )
+    n_analyze = int(math.ceil(len(jobs_to_analyze) / args.n_jobs))
+    for i in range(n_analyze):
+        jobs = jobs_to_analyze[i * args.n_jobs:(i+1) * args.n_jobs]
+        with Pool(args.n_jobs) as p:
+            results = p.map(lambda x: simulator.analyze(path=x.ms_dir), jobs)
+
     for i, job in enumerate(jobs_to_analyze):
         result = results[i]
         job.update_dict('result', result)
