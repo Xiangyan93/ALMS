@@ -67,22 +67,22 @@ def run(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
                          n_gmx_multi=args.n_gmx_multi)
 
 
-def _analyze(simulator: Npt, job: MD_NPT):
-    return simulator.analyze(path=job.ms_dir)
+def _analyze(simulator: Npt, job_dir: str):
+    return simulator.analyze(path=job_dir)
 
 
 def analyze(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
     print('Analyzing results of md_npt')
     jobs_to_analyze = []
+    jobs_dir = []
     for job in session.query(MD_NPT).filter_by(status=Status.SUBMITED).limit(args.n_analyze):
         if not job_manager.is_running(job.slurm_name):
             jobs_to_analyze.append(job)
+            jobs_dir.append(job.ms_dir)
 
     results = Parallel(n_jobs=args.n_jobs, verbose=True, **_joblib_parallel_args(prefer='processes'))(
-        delayed(_analyze)(
-            simulator, job
-        )
-        for job in jobs_to_analyze
+        delayed(lambda x: simulator.analyze(path=job_dir))(job_dir)
+        for job_dir in jobs_dir
     )
     for i, job in jobs_to_analyze:
         result = results[i]
