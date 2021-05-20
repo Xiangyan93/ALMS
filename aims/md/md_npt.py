@@ -67,8 +67,8 @@ def run(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
                          n_gmx_multi=args.n_gmx_multi)
 
 
-def _analyze(simulator: Npt, job_dir: str):
-    return simulator.analyze(path=job_dir)
+def _analyze(simulator: Npt, job: MD_NPT):
+    return simulator.analyze(path=job.ms_dir)
 
 
 def analyze(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
@@ -82,7 +82,7 @@ def analyze(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
     for i in tqdm(range(n_analyze), total=n_analyze):
         jobs = jobs_to_analyze[i * args.n_jobs:(i+1) * args.n_jobs]
         with Pool(args.n_jobs) as p:
-            results = p.map(lambda x: simulator.analyze(path=x.ms_dir), jobs)
+            results = p.map(_analyze, [(simulator, job) for job in jobs])
 
         for j, job in enumerate(jobs):
             result = results[j]
