@@ -114,6 +114,8 @@ def _submit_jobs(jobs_to_run: List, simulator: Npt, job_manager: Slurm, n_gmx_mu
         # make sure n_jobs % n_gmx_multi == 0
         if len(jobs_to_run) % n_gmx_multi != 0:
             jobs_to_run = jobs_to_run[:-(len(jobs_to_run) % n_gmx_multi)]
+            if len(jobs_to_run) == 0:
+                return
         #
         if job_manager.n_gpu != 0:
             assert n_gmx_multi % job_manager.n_gpu == 0
