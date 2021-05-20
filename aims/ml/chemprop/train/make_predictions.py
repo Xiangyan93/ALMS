@@ -177,13 +177,4 @@ def chemprop_predict() -> None:
 
     This is the entry point for the command line command :code:`chemprop_predict`.
     """
-    args = PredictArgs()
-    args.test_path = 'predict.csv'
-    args.checkpoint_dir = 'ml-models/tc'
-    args.preds_path = '3.csv'
-    args.smiles_columns = 'smiles'
-    args.features_generator = ['rdkit_2d_normalized']
-    args.no_features_scaling = True
-    args.process_args()
-    make_predictions(args)
-    # make_predictions(args=PredictArgs().parse_args())
+    make_predictions(args=PredictArgs().parse_args())

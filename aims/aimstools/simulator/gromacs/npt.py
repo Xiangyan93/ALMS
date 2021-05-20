@@ -139,7 +139,7 @@ class Npt(GmxSimulation):
         info_dict['time_sim'] = time_sim
         ### Check the ensemble. KS test on the distribution of kinetic energy
         ### TODO This can be optimized
-        data = pv.data.GromacsParser(self.gmx.GMX_BIN).get_simulation_data(
+        data = pv.data.GromacsParser(self.gmx.GMX_EXE).get_simulation_data(
             mdp='grompp-npt.mdp', top='topol.top', edr='npt.edr')
         p = pv.kinetic_energy.distribution(data, strict=True, verbosity=0)
         # If test does not pass, set the desired temperature to t_real.

@@ -1,7 +1,7 @@
 # AIMS (Artifical Intelligence Molecular Simulation)
 AIMS is a program for molecular property data sets. It contains three main parts.
 - Active Learning ([Gaussian Process Regression, Marginalized Graph Kernel](https://github.com/xiangyan93/Chem-Graph-Kernel-Machine)).
-- High-throughput Quamtum Chemistry Calculation and Force-Field Molecular Dynamics Simulation (GAUSSIAN, GROMACS).
+- High-throughput Quamtum Chemistry Calculation (GAUSSIAN) and Force-Field Molecular Dynamics Simulation (GROMACS).
 - Machine Learning Prediction ([Direct Message Passing Neural Network](https://github.com/chemprop/chemprop)).
 
 ## Dependencies and Installation
