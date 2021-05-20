@@ -102,30 +102,33 @@ def analyze(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
 def extend(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
     jobs_to_extend = session.query(MD_NPT).filter_by(status=Status.NOT_CONVERGED)
     if jobs_to_extend.count() == 0:
-        return
+        pass
+    else:
+        for job in jobs_to_extend:
+            continue_n = json.loads(job.result).get('continue_n')
+            assert continue_n is not None
+            commands = simulator.extend(path=job.ms_dir,continue_n=continue_n, n_jobs=args.n_hypercores)
+            job.commands_extend = json.dumps(commands)
+            job.status = Status.EXTENDED
+            session.commit()
 
-    for job in jobs_to_extend:
-        continue_n = json.loads(job.result).get('continue_n')
-        assert continue_n is not None
-        commands = simulator.extend(path=job.ms_dir,continue_n=continue_n, n_jobs=args.n_hypercores)
-        job.commands_extend = json.dumps(commands)
-        job.status = Status.EXTENDED
+    jobs_to_run = session.query(MD_NPT).filter_by(status=Status.EXTENDED)
+    if jobs_to_run.count() == 0:
+        pass
+    else:
+        mdrun_times2jobs = dict()
+        for job in jobs_to_run:
+            mdrun_times = job.mdrun_times
+            if mdrun_times2jobs.get(mdrun_times) is None:
+                mdrun_times2jobs[mdrun_times] = []
+            mdrun_times2jobs[mdrun_times].append(job)
 
-    jobs_to_run = session.query(MD_NPT).filter_by(status=Status.NOT_CONVERGED)
-
-    mdrun_times2jobs = dict()
-    for job in jobs_to_run:
-        mdrun_times = job.mdrun_times
-        if mdrun_times2jobs.get(mdrun_times) is None:
-            mdrun_times2jobs[mdrun_times] = []
-        mdrun_times2jobs[mdrun_times].append(job)
-
-    for mdrun_times, jobs in mdrun_times2jobs.items():
-        _submit_jobs(jobs_to_run=jobs,
-                     simulator=simulator,
-                     job_manager=job_manager,
-                     n_gmx_multi=args.n_gmx_multi,
-                     extend=True)
+        for mdrun_times, jobs in mdrun_times2jobs.items():
+            _submit_jobs(jobs_to_run=jobs,
+                         simulator=simulator,
+                         job_manager=job_manager,
+                         n_gmx_multi=args.n_gmx_multi,
+                         extend=True)
 
 
 def _submit_jobs(jobs_to_run: List, simulator: Npt, job_manager: Slurm, n_gmx_multi: int,
