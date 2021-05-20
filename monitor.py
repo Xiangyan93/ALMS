@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 import time
 from aims.args import MonitorArgs
-from aims.database import *
 
 
 def monitor(args: MonitorArgs):
