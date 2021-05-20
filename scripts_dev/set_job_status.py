@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
+CWD = os.path.dirname(os.path.abspath(__file__))
+import sys
+sys.path.append(os.path.join(CWD, '..'))
 from tap import Tap
 from aims.database.models import *
 

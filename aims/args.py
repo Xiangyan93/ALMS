@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 import os
 CWD = os.path.dirname(os.path.abspath(__file__))
-from tap import Tap
 from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
+from tap import Tap
 import torch
 import numpy as np
 import pandas as pd
