@@ -84,7 +84,7 @@ def analyze(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
         delayed(lambda x: simulator.analyze(path=job_dir))(job_dir)
         for job_dir in jobs_dir
     )
-    for i, job in jobs_to_analyze:
+    for i, job in enumerate(jobs_to_analyze):
         result = results[i]
         job.update_dict('result', result)
         if result.get('failed'):
