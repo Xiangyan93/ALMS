@@ -45,6 +45,8 @@ class Slurm:
         self.walltime = walltime
         self.sh = '_job_slurm.sh'
         self.submit_cmd = 'sbatch'
+        self.update_time = datetime.datetime.now()
+        self._update_stored_jobs()
 
     @property
     def is_working(self) -> bool:
@@ -55,7 +57,8 @@ class Slurm:
 
     @property
     def current_jobs(self) -> List[SlurmJob]:
-        self._update_stored_jobs()
+        if (datetime.datetime.now() - self.last_update).total_seconds() >= 60:
+            self._update_stored_jobs()
         return self.stored_jobs
 
     @property

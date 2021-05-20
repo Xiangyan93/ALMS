@@ -74,7 +74,7 @@ class Status:
     DONE = 4  # slurm jobs finished.
     ANALYZED = 5  # read the log file and extract results successfully.
     NOT_CONVERGED = 6  # the simultion is not converged, need to be extended.
-    EXTENDED = 7  #
+    EXTENDED = 7  # the not-converged simulation is extended, need to submit slurm jobs.
     MIXED = 8
     FAILED = -1  # failed task.
 
@@ -192,7 +192,8 @@ class MD_NPT(Base):
     status = Column(Integer, default=Status.STARTED)
     T = Column(Float)  # in K
     P = Column(Float)  # in bar
-    commands = Column(Text)
+    commands_mdrun = Column(Text)
+    commands_extend = Column(Text)
     sh_file = Column(Text)
     result = Column(Text)
 
@@ -221,6 +222,18 @@ class MD_NPT(Base):
             return sh_file[-1].split('/')[-1][:-3]
         else:
             return None
+
+    @property
+    def mdrun_times(self) -> int:
+        log = os.path.join(self.ms_dir, 'npt.log')
+        if not os.path.exists(log):
+            return 0
+        f = open(log, 'r')
+        n = 0
+        for line in f.readlines():
+            if line.startswith('Started mdrun'):
+                n += 1
+        return n
 
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)

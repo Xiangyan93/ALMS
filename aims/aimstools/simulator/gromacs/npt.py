@@ -25,6 +25,7 @@ class Npt(GmxSimulation):
               export: bool = True, ppf: str = None):
         cwd = os.getcwd()
         os.chdir(path)
+
         n_mol_list, pdb_list, mol2_list, length, box_size, vol = \
             super()._build(path, smiles_list, n_mol_list, n_mol_ratio, n_atoms, n_mols, length, density)
         print('Build coordinates using Packmol: %s molecules ...' % n_mol_list)
@@ -128,6 +129,7 @@ class Npt(GmxSimulation):
     def analyze(self, path: str, check_converge: bool = True, cutoff_time: int = 7777) -> Dict:
         cwd = os.getcwd()
         os.chdir(path)
+
         info_dict = dict()
         df = edr_to_df('npt.edr')
         df_hvap = edr_to_df('hvap.edr')
@@ -266,10 +268,14 @@ class Npt(GmxSimulation):
             'compress': [compressi, compr_stderr],  # m^3/J
         }
         info_dict.update(ad_dict)
+
         os.chdir(cwd)
         return info_dict
 
-    def extend(self, continue_n: int, dt: float = 0.002, n_jobs: int = 1) -> List[str]:
+    def extend(self, path: str, continue_n: int, dt: float = 0.002, n_jobs: int = 1) -> List[str]:
+        cwd = os.getcwd()
+        os.chdir(path)
+
         commands = []
         extend = continue_n * dt
         self.gmx.extend_tpr('npt.tpr', extend, silent=True)
@@ -283,4 +289,5 @@ class Npt(GmxSimulation):
         cmd = self.gmx.mdrun(name='hvap', nprocs=n_jobs, n_omp=n_jobs, rerun='npt.xtc', get_cmd=True)
         commands.append(cmd)
 
+        os.chdir(cwd)
         return commands
