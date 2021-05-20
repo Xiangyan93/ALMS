@@ -127,6 +127,9 @@ class Npt(GmxSimulation):
 
     # analyze thermodynamic properties
     def analyze(self, path: str, check_converge: bool = True, cutoff_time: int = 7777) -> Dict:
+        cwd = os.getcwd()
+        os.chdir(path)
+
         npt_edr = os.path.join(path, 'npt.edr')
         hvap_edr = os.path.join(path, 'hvap.edr')
 
@@ -269,6 +272,7 @@ class Npt(GmxSimulation):
         }
         info_dict.update(ad_dict)
 
+        os.chdir(cwd)
         return info_dict
 
     def extend(self, path: str, continue_n: int, dt: float = 0.002, n_jobs: int = 1) -> List[str]:
