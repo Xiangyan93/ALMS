@@ -67,23 +67,25 @@ def run(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
                          n_gmx_multi=args.n_gmx_multi)
 
 
-def _analyze(input: Tuple[Npt, MD_NPT]):
-    simulator, job = input
-    return simulator.analyze(path=job.ms_dir)
+def _analyze(input: Tuple[Npt, str]):
+    simulator, job_dir = input
+    return simulator.analyze(path=job_dir)
 
 
 def analyze(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
     print('Analyzing results of md_npt')
     jobs_to_analyze = []
+    jobs_dir = []
     for job in session.query(MD_NPT).filter_by(status=Status.SUBMITED).limit(args.n_analyze):
         if not job_manager.is_running(job.slurm_name):
             jobs_to_analyze.append(job)
+            jobs_dir.append(job.ms_dir)
 
     n_analyze = int(math.ceil(len(jobs_to_analyze) / args.n_jobs))
     for i in tqdm(range(n_analyze), total=n_analyze):
         jobs = jobs_to_analyze[i * args.n_jobs:(i+1) * args.n_jobs]
         with Pool(args.n_jobs) as p:
-            results = p.map(_analyze, [(simulator, job) for job in jobs])
+            results = p.map(_analyze, [(simulator, job_dir) for job_dir in jobs_dir])
 
         for j, job in enumerate(jobs):
             result = results[j]
