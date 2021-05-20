@@ -67,7 +67,8 @@ def run(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
                          n_gmx_multi=args.n_gmx_multi)
 
 
-def _analyze(simulator: Npt, job: MD_NPT):
+def _analyze(input: Tuple[Npt, MD_NPT]):
+    simulator, job = input
     return simulator.analyze(path=job.ms_dir)
 
 
