@@ -1,5 +1,5 @@
 # AIMS (Artifical Intelligence Molecular Simulation)
-AIMS is a program for molecular property data sets. It contains three main parts.
+AIMS is a program for generating molecular property data sets. It contains three main parts.
 - Active Learning ([Gaussian Process Regression, Marginalized Graph Kernel](https://github.com/xiangyan93/Chem-Graph-Kernel-Machine)).
 - High-throughput Quamtum Chemistry Calculation (GAUSSIAN) and Force-Field Molecular Dynamics Simulation (GROMACS).
 - Machine Learning Prediction ([Direct Message Passing Neural Network](https://github.com/chemprop/chemprop)).
@@ -26,7 +26,7 @@ conda activate aims
    ```
    python3 active_learning.py --stop_uncertainty 0.3
    ```
-3. High-throughput QM simulation.
+3. High-throughput QM calculation.
    ```
    python3 monitor.py --task qm_cv --partition cpu --n_cores 8 --n_jobs 8  --gaussian_exe $GAUSSIAN --n_conformer 1
    ```
