@@ -28,9 +28,9 @@ class SubmitArgs(Tap):
             df = pd.read_csv(self.file)
             for s in ['smiles', 'SMILES']:
                 if s in df:
-                    return df[s]
+                    return df[s].unique()
             else:
-                return df.iloc[:, 0]
+                return df.iloc[:, 0].unique()
 
 
 class ActiveLearningArgs(Tap):
