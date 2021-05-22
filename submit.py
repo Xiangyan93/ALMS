@@ -18,7 +18,7 @@ def mol_filter(smiles: str,
     mol = Chem.MolFromSmiles(smiles)
     # Return None for heavy atoms out of range.
     if heavy_atom is not None:
-        if not heavy_atom[0] < mol.GetNumAtoms() < heavy_atom[1]:
+        if not heavy_atom[0] <= mol.GetNumAtoms() <= heavy_atom[1]:
             return None
     # Return None for wrong smiles.
     if mol is None:
