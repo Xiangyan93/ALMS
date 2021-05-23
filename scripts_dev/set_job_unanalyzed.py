@@ -22,8 +22,9 @@ def main(args: Args):
         return
 
     for job in jobs:
-        job.status = Status.SUBMITED
-        job.result = None
+        if job.sh_file is not None:
+            job.status = Status.SUBMITED
+            job.result = None
     session.commit()
 
 
