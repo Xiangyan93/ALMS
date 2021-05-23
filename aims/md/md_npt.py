@@ -27,7 +27,7 @@ def create(args: MonitorArgs):
     create_dir(os.path.join(DIR_DATA, 'tmp'))
     # crete jobs.
     for mol in session.query(Molecule).filter_by(active_learning=True):
-        mol.create_md_npt()
+        mol.create_md_npt(T_min=args.T_range[0], T_max=args.T_range[1], n_T=args.n_Temp, P_list=args.P_list)
     session.commit()
 
 

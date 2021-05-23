@@ -99,6 +99,12 @@ class MonitorArgs(SoftwareArgs):
     # GMX args
     n_gmx_multi: int = 1
     """The number of gmx jobs in each slurm job."""
+    T_range: List[float] = [0.4, 0.9]
+    """Reduced temperature range for simulations."""
+    n_Temp: int = 8
+    """Number of temperatures for simultions."""
+    P_list: List[float] = [1]
+    """Pressures for simulations."""
 
     @property
     def job_manager_(self):

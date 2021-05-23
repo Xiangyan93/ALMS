@@ -127,10 +127,8 @@ class Molecule(Base):
             add_or_query(qm_cv, ['molecule_id', 'seed'])
 
     # functions for md_npt
-    def create_md_npt(self):
-        assert self.tt + 25 < self.tb < self.tc * 0.85
-        T_list = get_T_list_from_range(self.tt + 25, self.tc * 0.85, n_point=8)
-        P_list = [1, 50, 100, 250, 500, 750, 1000]
+    def create_md_npt(self, T_min: float, T_max: float, n_T: int, P_list: List[float]):
+        T_list = get_T_list_from_range(self.tc * T_min, self.tc * T_max, n_point=n_T)
         for T in T_list:
             for P in P_list:
                 md_npt = MD_NPT(molecule_id=self.id, T=T, P=P)
