@@ -81,7 +81,7 @@ def submit(args: SubmitArgs):
     }
     smiles_valid = []
     for s in smiles:
-        can_s = mol_filter(s, smarts_bad)
+        can_s = mol_filter(s, smarts_bad, args.heavy_atoms)
         if can_s is not None:
             smiles_valid.append(can_s)
 
