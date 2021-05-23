@@ -85,8 +85,9 @@ def analyze(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
     n_analyze = int(math.ceil(len(jobs_to_analyze) / args.n_jobs))
     for i in tqdm(range(n_analyze), total=n_analyze):
         jobs = jobs_to_analyze[i * args.n_jobs:(i+1) * args.n_jobs]
+        jobs_dir_ = jobs_dir[i * args.n_jobs:(i+1) * args.n_jobs]
         with Pool(args.n_jobs) as p:
-            results = p.map(_analyze, [(simulator, job_dir) for job_dir in jobs_dir])
+            results = p.map(_analyze, [(simulator, job_dir) for job_dir in jobs_dir_])
 
         for j, job in enumerate(jobs):
             result = results[j]
