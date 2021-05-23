@@ -59,8 +59,8 @@ def active_learning(alargs: ALArgs):
     # get preCalc kernel
     print('**\tCalculating kernel matrix\t**')
     kernel_config = get_kernel_config(args, dataset_full)
-    print('**\tEnd Calculating kernel matrix\t**')
     kernel_config = kernel_config.get_preCalc_kernel_config(args, dataset_full)
+    print('**\tEnd Calculating kernel matrix\t**')
     dataset.graph_kernel_type = 'preCalc'
     dataset_pool.graph_kernel_type = 'preCalc'
     dataset_full.graph_kernel_type = 'preCalc'

@@ -19,8 +19,7 @@ conda activate aims
 ## Usages
 1. Submit molecules to the database.
    ```
-   python3 submit.py --smiles CCCC CCCCC CCCCCC --features_generator rdkit_2d_normalized
-   python3 submit.py --file data/smiles.csv --features_generator rdkit_2d_normalized --heavy_atoms 0 20
+   python3 submit.py --smiles CCCC CCCCC CCCCCC --files data/smiles.csv --features_generator rdkit_2d_normalized --heavy_atoms 4 19
    ```
 2. Select which molecules to be simulated using unsupervised active learning.
    ```

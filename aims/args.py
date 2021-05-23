@@ -13,7 +13,7 @@ from .aimstools.jobmanager import Slurm
 class SubmitArgs(Tap):
     smiles: List[str] = None
     """Submit a list of molecules in SMILES."""
-    file: str = None
+    files: List[str] = None
     """Submit a list of SMILES in a file."""
     features_generator: List[str] = None
     """Method(s) of generating additional molfeatures."""
@@ -21,16 +21,19 @@ class SubmitArgs(Tap):
     """Only molecules with heavy atoms in the interval will be submitted."""
 
     @property
-    def smiles_list(self):
+    def smiles_list(self) -> List[str]:
+        smiles = []
         if self.smiles is not None:
-            return self.smiles
-        else:
-            df = pd.read_csv(self.file)
-            for s in ['smiles', 'SMILES']:
-                if s in df:
-                    return df[s].unique()
-            else:
-                return df.iloc[:, 0].unique()
+            smiles.extend(self.smiles)
+        if self.files is not None:
+            for file in self.files:
+                df = pd.read_csv(file)
+                for s in ['smiles', 'SMILES']:
+                    if s in df:
+                        smiles.extend(df[s].unique().tolist())
+                else:
+                  smiles.extend(df.iloc[:, 0].unique().tolist())
+        return np.unique(smiles).tolist()
 
 
 class ActiveLearningArgs(Tap):
