@@ -273,9 +273,7 @@ class Npt(GmxSimulation):
             }
             info_dict.update(ad_dict)
         except:
-            info_dict['failed'] = False
-            info_dict['continue'] = True
-            info_dict['continue_n'] = 2.5e5
+            info_dict['failed'] = True
             info_dict['reason'] = 'Abnormal Error.'
         os.chdir(cwd)
         return info_dict
