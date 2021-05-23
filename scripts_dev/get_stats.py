@@ -22,8 +22,8 @@ def main(args: Args):
         return
 
     print('There are total %i jobs' % jobs.count())
-    for i, status in ['FAILED', 'STARTED', 'BUILD', 'PREPARED', 'SUBMITED', 'DONE', 'ANALYZED', 'NOT_CONVERGED',
-                      'EXTENDED']:
+    for i, status in enumerate(['FAILED', 'STARTED', 'BUILD', 'PREPARED', 'SUBMITED', 'DONE', 'ANALYZED',
+                                'NOT_CONVERGED', 'EXTENDED']):
         print('There are %i jobs in status %s.' % (jobs.filter_by(status=i-1).count(), status))
 
 
