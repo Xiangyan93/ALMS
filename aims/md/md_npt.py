@@ -54,7 +54,7 @@ def build(args: MonitorArgs, simulator: Npt):
 
 def run(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
     n_submit = args.n_run - job_manager.n_current_jobs
-    n_jobs_per_mol = 56
+    n_jobs_per_mol = args.n_Temp * len(args.P_list)
     if n_submit > 0:
         for mol in _get_n_mols(math.ceil(n_submit * args.n_gmx_multi / n_jobs_per_mol), in_status=Status.PREPARED):
             jobs_to_run = []
