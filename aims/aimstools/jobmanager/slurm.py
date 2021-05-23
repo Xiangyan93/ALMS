@@ -46,7 +46,7 @@ class Slurm:
         self.sh = '_job_slurm.sh'
         self.submit_cmd = 'sbatch'
         self.update_time = datetime.datetime.now()
-        self._update_stored_jobs()
+        self.update_stored_jobs()
 
     @property
     def is_working(self) -> bool:
@@ -58,7 +58,7 @@ class Slurm:
     @property
     def current_jobs(self) -> List[SlurmJob]:
         if (datetime.datetime.now() - self.last_update).total_seconds() >= 60:
-            self._update_stored_jobs()
+            self.update_stored_jobs()
         return self.stored_jobs
 
     @property
@@ -148,7 +148,7 @@ class Slurm:
         cmd = f'scancel {job.id}'
         return subprocess.call(cmd.split()) == 0
 
-    def _update_stored_jobs(self):
+    def update_stored_jobs(self):
         print('Update job information')
         self.stored_jobs = []
         jobs = []

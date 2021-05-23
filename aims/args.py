@@ -83,9 +83,9 @@ class MonitorArgs(SoftwareArgs):
     walltime: int = 48
     """Walltime of slurm jobs (hour)."""
     # controller args.
-    n_prepare: int = 100
+    n_prepare: int = 10
     """"""
-    n_run: int = 50
+    n_run: int = 20
     """The maximum number of running slurm jobs allowed."""
     n_analyze: int = 1000
     """"""

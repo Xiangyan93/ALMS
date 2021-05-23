@@ -74,6 +74,7 @@ def _analyze(input: Tuple[Npt, str]):
 
 def analyze(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
     print('Analyzing results of md_npt')
+    job_manager.update_stored_jobs()
     jobs_to_analyze = []
     jobs_dir = []
     for job in session.query(MD_NPT).filter_by(status=Status.SUBMITED).limit(args.n_analyze):
