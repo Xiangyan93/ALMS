@@ -91,7 +91,7 @@ def analyze(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
 
         for j, job in enumerate(jobs):
             result = results[j]
-            job.update_dict('result', result)
+            job.result = json.dumps(result)
             if result.get('failed'):
                 job.status = Status.FAILED
             elif result.get('continue'):
