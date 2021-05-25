@@ -99,7 +99,7 @@ class GaussianSimulator:
             if self.memMB is not None:
                 f.write('%%mem=%dMB\n' % self.memMB)
             f.write('%%chk=%(path)s/%(name)s.chk\n'
-                    '# opt freq=hindrot %(method)s %(basis)s scale=%(scale).4f temperature=%(T).2f\n'
+                    '# opt freq=hindrot pop=full %(method)s %(basis)s scale=%(scale).4f temperature=%(T).2f\n'
                     '\n'
                     'Title\n'
                     '\n'
