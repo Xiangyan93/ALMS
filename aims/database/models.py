@@ -176,6 +176,15 @@ class QM_CV(Base):
     def name(self) -> str:
         return 'aims_qm_cv_%d' % self.molecule.id
 
+    @property
+    def slurm_name(self) -> Optional[str]:
+        sh_file = json.loads(self.sh_file)
+        if sh_file:
+            assert sh_file[-1].endswith('.sh')
+            return sh_file[-1].split('/')[-1][:-3]
+        else:
+            return None
+
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)
 
