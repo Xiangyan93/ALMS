@@ -50,6 +50,8 @@ def run(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm):
 
 
 def analyze(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm):
+    print('Analyzing results of qm_cv')
+    job_manager.update_stored_jobs()
     for job in session.query(QM_CV).filter_by(status=Status.SUBMITED).limit(args.n_analyze):
         if not job_manager.is_running(job.slurm_name):
             result = simulator.analyze(os.path.join(job.ms_dir, 'gaussian.log'))
