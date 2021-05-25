@@ -4,6 +4,17 @@ AIMS is a program for generating molecular property data sets. It contains three
 - High-throughput Quamtum Chemistry Calculation (GAUSSIAN) and Force-Field Molecular Dynamics Simulation (GROMACS).
 - Machine Learning Prediction ([Direct Message Passing Neural Network](https://github.com/chemprop/chemprop)).
 
+The workflow of AIMS:
+<div align="center">
+<p><img src="data/picture/AIMS.png" width="1000"/></p>
+</div> 
+
+The workflow of high-throughput calculation engine:
+The workflow of AIMS:
+<div align="center">
+<p><img src="data/picture/HTE.png" width="1000"/></p>
+</div> 
+
 ## Dependencies and Installation
 - [GAUSSIAN](https://gaussian.com/gaussian16/) (Quantum Chemistry).
 - [DFF](http://www.acc-sh.com/), 
@@ -15,6 +26,8 @@ AIMS is a program for generating molecular property data sets. It contains three
 conda env create -f environment.yml
 conda activate aims
 ```
+- "monitor.py" need to run on a cluster with SLURM job manager to automatically submit jobs and
+collect results.
 
 ## Usages
 1. Submit molecules to the database.
