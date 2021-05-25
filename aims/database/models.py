@@ -74,7 +74,7 @@ class Status:
     DONE = 4  # slurm jobs finished.
     ANALYZED = 5  # read the log file and extract results successfully.
     NOT_CONVERGED = 6  # the simultion is not converged, need to be extended.
-    EXTENDED = 7  #
+    EXTENDED = 7  # the not-converged simulation is extended, need to submit slurm jobs.
     MIXED = 8
     FAILED = -1  # failed task.
 
@@ -127,10 +127,8 @@ class Molecule(Base):
             add_or_query(qm_cv, ['molecule_id', 'seed'])
 
     # functions for md_npt
-    def create_md_npt(self):
-        assert self.tt + 25 < self.tb < self.tc * 0.85
-        T_list = get_T_list_from_range(self.tt + 25, self.tc * 0.85, n_point=8)
-        P_list = [1, 50, 100, 250, 500, 750, 1000]
+    def create_md_npt(self, T_min: float, T_max: float, n_T: int, P_list: List[float]):
+        T_list = get_T_list_from_range(self.tc * T_min, self.tc * T_max, n_point=n_T)
         for T in T_list:
             for P in P_list:
                 md_npt = MD_NPT(molecule_id=self.id, T=T, P=P)
@@ -192,7 +190,8 @@ class MD_NPT(Base):
     status = Column(Integer, default=Status.STARTED)
     T = Column(Float)  # in K
     P = Column(Float)  # in bar
-    commands = Column(Text)
+    commands_mdrun = Column(Text)
+    commands_extend = Column(Text)
     sh_file = Column(Text)
     result = Column(Text)
 
@@ -221,6 +220,18 @@ class MD_NPT(Base):
             return sh_file[-1].split('/')[-1][:-3]
         else:
             return None
+
+    @property
+    def mdrun_times(self) -> int:
+        log = os.path.join(self.ms_dir, 'npt.log')
+        if not os.path.exists(log):
+            return 0
+        f = open(log, 'r')
+        n = 0
+        for line in f.readlines():
+            if line.startswith('Started mdrun'):
+                n += 1
+        return n
 
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)

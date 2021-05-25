@@ -1,8 +1,19 @@
 # AIMS (Artifical Intelligence Molecular Simulation)
-AIMS is a program for molecular property data sets. It contains three main parts.
+AIMS is a program for generating molecular property data sets. It contains three main parts.
 - Active Learning ([Gaussian Process Regression, Marginalized Graph Kernel](https://github.com/xiangyan93/Chem-Graph-Kernel-Machine)).
-- High-throughput Quamtum Chemistry Calculation and Force-Field Molecular Dynamics Simulation (GAUSSIAN, GROMACS).
+- High-throughput Quamtum Chemistry Calculation (GAUSSIAN) and Force-Field Molecular Dynamics Simulation (GROMACS).
 - Machine Learning Prediction ([Direct Message Passing Neural Network](https://github.com/chemprop/chemprop)).
+
+The workflow of AIMS:
+<div align="center">
+<p><img src="data/picture/AIMS.png" width="1000"/></p>
+</div> 
+
+The workflow of high-throughput calculation engine:
+The workflow of AIMS:
+<div align="center">
+<p><img src="data/picture/HTE.png" width="1000"/></p>
+</div> 
 
 ## Dependencies and Installation
 - [GAUSSIAN](https://gaussian.com/gaussian16/) (Quantum Chemistry).
@@ -15,18 +26,19 @@ AIMS is a program for molecular property data sets. It contains three main parts
 conda env create -f environment.yml
 conda activate aims
 ```
+- "monitor.py" need to run on a cluster with SLURM job manager to automatically submit jobs and
+collect results.
 
 ## Usages
 1. Submit molecules to the database.
    ```
-   python3 submit.py --smiles CCCC CCCCC CCCCCC --features_generator rdkit_2d_normalized
-   python3 submit.py --file data/smiles.csv --features_generator rdkit_2d_normalized --heavy_atoms 0 20
+   python3 submit.py --smiles CCCC CCCCC CCCCCC --files data/smiles.csv --features_generator rdkit_2d_normalized --heavy_atoms 4 19
    ```
 2. Select which molecules to be simulated using unsupervised active learning.
    ```
    python3 active_learning.py --stop_uncertainty 0.3
    ```
-3. High-throughput QM simulation.
+3. High-throughput QM calculation.
    ```
    python3 monitor.py --task qm_cv --partition cpu --n_cores 8 --n_jobs 8  --gaussian_exe $GAUSSIAN --n_conformer 1
    ```

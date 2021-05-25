@@ -18,7 +18,7 @@ def mol_filter(smiles: str,
     mol = Chem.MolFromSmiles(smiles)
     # Return None for heavy atoms out of range.
     if heavy_atom is not None:
-        if not heavy_atom[0] < mol.GetNumAtoms() < heavy_atom[1]:
+        if not heavy_atom[0] <= mol.GetNumAtoms() <= heavy_atom[1]:
             return None
     # Return None for wrong smiles.
     if mol is None:
@@ -81,7 +81,7 @@ def submit(args: SubmitArgs):
     }
     smiles_valid = []
     for s in smiles:
-        can_s = mol_filter(s, smarts_bad)
+        can_s = mol_filter(s, smarts_bad, args.heavy_atoms)
         if can_s is not None:
             smiles_valid.append(can_s)
 

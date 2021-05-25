@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
 import os
-
 CWD = os.path.dirname(os.path.abspath(__file__))
 DIR_DATA = os.path.join(CWD, '..', '..', 'data')
 import math
 import json
+from tqdm import tqdm
+from multiprocessing import Pool
 from ..args import MonitorArgs
 from ..database import *
 from ..aimstools.simulator.gromacs import Npt
@@ -26,7 +27,7 @@ def create(args: MonitorArgs):
     create_dir(os.path.join(DIR_DATA, 'tmp'))
     # crete jobs.
     for mol in session.query(Molecule).filter_by(active_learning=True):
-        mol.create_md_npt()
+        mol.create_md_npt(T_min=args.T_range[0], T_max=args.T_range[1], n_T=args.n_Temp, P_list=args.P_list)
     session.commit()
 
 
@@ -44,7 +45,7 @@ def build(args: MonitorArgs, simulator: Npt):
         session.commit()
 
     for job in session.query(MD_NPT).filter_by(status=Status.BUILD):
-        job.commands = json.dumps(
+        job.commands_mdrun = json.dumps(
             simulator.prepare(path=job.ms_dir, n_jobs=args.n_hypercores, T=job.T, P=job.P, drde=True, T_basic=298)
         )
         job.status = Status.PREPARED
@@ -53,7 +54,7 @@ def build(args: MonitorArgs, simulator: Npt):
 
 def run(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
     n_submit = args.n_run - job_manager.n_current_jobs
-    n_jobs_per_mol = 56
+    n_jobs_per_mol = args.n_Temp * len(args.P_list)
     if n_submit > 0:
         for mol in _get_n_mols(math.ceil(n_submit * args.n_gmx_multi / n_jobs_per_mol), in_status=Status.PREPARED):
             jobs_to_run = []
@@ -66,11 +67,31 @@ def run(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
                          n_gmx_multi=args.n_gmx_multi)
 
 
+def _analyze(input: Tuple[Npt, str]):
+    simulator, job_dir = input
+    return simulator.analyze(path=job_dir)
+
+
 def analyze(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
+    print('Analyzing results of md_npt')
+    job_manager.update_stored_jobs()
+    jobs_to_analyze = []
+    jobs_dir = []
     for job in session.query(MD_NPT).filter_by(status=Status.SUBMITED).limit(args.n_analyze):
         if not job_manager.is_running(job.slurm_name):
-            result = simulator.analyze(path=job.ms_dir)
-            job.update_dict('result', result)
+            jobs_to_analyze.append(job)
+            jobs_dir.append(job.ms_dir)
+
+    n_analyze = int(math.ceil(len(jobs_to_analyze) / args.n_jobs))
+    for i in tqdm(range(n_analyze), total=n_analyze):
+        jobs = jobs_to_analyze[i * args.n_jobs:(i+1) * args.n_jobs]
+        jobs_dir_ = jobs_dir[i * args.n_jobs:(i+1) * args.n_jobs]
+        with Pool(args.n_jobs) as p:
+            results = p.map(_analyze, [(simulator, job_dir) for job_dir in jobs_dir_])
+
+        for j, job in enumerate(jobs):
+            result = results[j]
+            job.result = json.dumps(result)
             if result.get('failed'):
                 job.status = Status.FAILED
             elif result.get('continue'):
@@ -81,30 +102,46 @@ def analyze(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
 
 
 def extend(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
-    jobs_to_run = session.query(MD_NPT).filter_by(status=Status.NOT_CONVERGED).all()
-    if len(jobs_to_run) == 0:
-        return
+    jobs_to_extend = session.query(MD_NPT).filter_by(status=Status.NOT_CONVERGED)
+    if jobs_to_extend.count() == 0:
+        pass
+    else:
+        for job in jobs_to_extend:
+            continue_n = json.loads(job.result).get('continue_n')
+            assert continue_n is not None
+            commands = simulator.extend(path=job.ms_dir,continue_n=continue_n, n_jobs=args.n_hypercores)
+            job.commands_extend = json.dumps(commands)
+            job.status = Status.EXTENDED
+            session.commit()
 
-    for job in jobs_to_run:
-        continue_n = json.loads(job.result).get('continue_n')
-        assert continue_n is not None
-        commands = simulator.extend(continue_n=continue_n, n_jobs=args.n_hypercores)
-    _submit_jobs(jobs_to_run=jobs_to_run,
-                 simulator=simulator,
-                 job_manager=job_manager,
-                 n_gmx_multi=args.n_gmx_multi,
-                 extend=True,
-                 commands=commands)
+    jobs_to_run = session.query(MD_NPT).filter_by(status=Status.EXTENDED)
+    if jobs_to_run.count() == 0:
+        pass
+    else:
+        mdrun_times2jobs = dict()
+        for job in jobs_to_run:
+            mdrun_times = job.mdrun_times
+            if mdrun_times2jobs.get(mdrun_times) is None:
+                mdrun_times2jobs[mdrun_times] = []
+            mdrun_times2jobs[mdrun_times].append(job)
+
+        for mdrun_times, jobs in mdrun_times2jobs.items():
+            _submit_jobs(jobs_to_run=jobs,
+                         simulator=simulator,
+                         job_manager=job_manager,
+                         n_gmx_multi=args.n_gmx_multi,
+                         extend=True)
 
 
 def _submit_jobs(jobs_to_run: List, simulator: Npt, job_manager: Slurm, n_gmx_multi: int,
-                 extend: bool = False, commands: List[str] = None):
+                 extend: bool = False):
     if n_gmx_multi == 1:
         for job in jobs_to_run:
             name = job.name + '_extend' if extend else job.name
+            commands = json.loads(job.commands_extend) if extend else json.loads(job.commands_mdrun)
             sh = job_manager.generate_sh(path=job.ms_dir,
                                          name=name,
-                                         commands=commands or json.loads(job.commands),
+                                         commands=commands,
                                          sh_index=True)
             job_manager.submit(sh)
             job.update_list('sh_file', [sh])
@@ -113,7 +150,9 @@ def _submit_jobs(jobs_to_run: List, simulator: Npt, job_manager: Slurm, n_gmx_mu
     else:
         # make sure n_jobs % n_gmx_multi == 0
         if len(jobs_to_run) % n_gmx_multi != 0:
-            jobs_to_run = jobs_to_run[:-len(jobs_to_run) % n_gmx_multi]
+            jobs_to_run = jobs_to_run[:-(len(jobs_to_run) % n_gmx_multi)]
+            if len(jobs_to_run) == 0:
+                return
         #
         if job_manager.n_gpu != 0:
             assert n_gmx_multi % job_manager.n_gpu == 0
@@ -121,7 +160,7 @@ def _submit_jobs(jobs_to_run: List, simulator: Npt, job_manager: Slurm, n_gmx_mu
         jobs_list = [jobs_to_run[i * n_gmx_multi:(i + 1) * n_gmx_multi]
                      for i in range(int(len(jobs_to_run) / n_gmx_multi))]
 
-        multi_cmds = json.loads(jobs_to_run[0].commands)
+        multi_cmds = json.loads(jobs_to_run[0].commands_extend) if extend else json.loads(jobs_to_run[0].commands_mdrun)
         multi_dirs = [job.ms_dir for job in jobs_to_run]
         commands_list = simulator.gmx.generate_gpu_multidir_cmds(multi_dirs, multi_cmds,
                                                                  n_parallel=n_gmx_multi,

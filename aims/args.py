@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 import os
 CWD = os.path.dirname(os.path.abspath(__file__))
-from tap import Tap
 from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
+from tap import Tap
 import torch
 import numpy as np
 import pandas as pd
@@ -13,7 +13,7 @@ from .aimstools.jobmanager import Slurm
 class SubmitArgs(Tap):
     smiles: List[str] = None
     """Submit a list of molecules in SMILES."""
-    file: str = None
+    files: List[str] = None
     """Submit a list of SMILES in a file."""
     features_generator: List[str] = None
     """Method(s) of generating additional molfeatures."""
@@ -21,16 +21,19 @@ class SubmitArgs(Tap):
     """Only molecules with heavy atoms in the interval will be submitted."""
 
     @property
-    def smiles_list(self):
+    def smiles_list(self) -> List[str]:
+        smiles = []
         if self.smiles is not None:
-            return self.smiles
-        else:
-            df = pd.read_csv(self.file)
-            for s in ['smiles', 'SMILES']:
-                if s in df:
-                    return df[s]
-            else:
-                return df.iloc[:, 0]
+            smiles.extend(self.smiles)
+        if self.files is not None:
+            for file in self.files:
+                df = pd.read_csv(file)
+                for s in ['smiles', 'SMILES']:
+                    if s in df:
+                        smiles.extend(df[s].unique().tolist())
+                else:
+                  smiles.extend(df.iloc[:, 0].unique().tolist())
+        return np.unique(smiles).tolist()
 
 
 class ActiveLearningArgs(Tap):
@@ -80,9 +83,9 @@ class MonitorArgs(SoftwareArgs):
     walltime: int = 48
     """Walltime of slurm jobs (hour)."""
     # controller args.
-    n_prepare: int = 100
+    n_prepare: int = 10
     """"""
-    n_run: int = 50
+    n_run: int = 20
     """The maximum number of running slurm jobs allowed."""
     n_analyze: int = 1000
     """"""
@@ -96,6 +99,12 @@ class MonitorArgs(SoftwareArgs):
     # GMX args
     n_gmx_multi: int = 1
     """The number of gmx jobs in each slurm job."""
+    T_range: List[float] = [0.4, 0.9]
+    """Reduced temperature range for simulations."""
+    n_Temp: int = 8
+    """Number of temperatures for simultions."""
+    P_list: List[float] = [1]
+    """Pressures for simulations."""
 
     @property
     def job_manager_(self):
