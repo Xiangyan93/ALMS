@@ -12,6 +12,7 @@ class Mol3D:
                  n_conformer: int = 0, seed: int = 0):
         try:
             self.mol_py = pybel.readstring('smi', smiles)
+            self.mol_py.addh()
         except:
             raise RuntimeError('Cannot create molecule from SMILES using openbabel.')
 
@@ -24,7 +25,7 @@ class Mol3D:
 
         if algorithm == 'openbabel':
             self.mol = self._mol_openbabel(minimize=True)
-            self.conformers = self._conformers_openbabel(n_select=n_conformer)
+            self.conformers = self._conformers_openbabel(n_select=n_conformer, n_try=n_conformer)
         else:
             raise RuntimeError(f'Unknown 3D coordinates generate algorithm {algorithm}')
 
