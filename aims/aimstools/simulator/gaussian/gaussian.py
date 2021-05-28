@@ -22,7 +22,7 @@ class GaussianSimulator:
         mol3d = Mol3D(smiles, algorithm=conformer_generator, seed=seed)
         print('Build GAUSSIAN input file.')
         if task == 'qm_cv':
-            self._create_gjf_cv(mol3d, path=path, name=name, T_list=np.arange(100, 900, 100))
+            self._create_gjf_cv(mol3d, path=path, name=name, T_list=np.arange(100, 1400, 100))
             file = os.path.join(path, '%s.gjf' % name)
             return self.get_slurm_commands(file, tmp_dir)
         else:
