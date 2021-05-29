@@ -126,6 +126,10 @@ class Molecule(Base):
             qm_cv = QM_CV(molecule_id=self.id, seed=i)
             add_or_query(qm_cv, ['molecule_id', 'seed'])
 
+    @property
+    def status_qm_cv(self) -> List[int]:
+        return list(set([job.status for job in self.qm_cv]))
+
     # functions for md_npt
     def create_md_npt(self, T_min: float, T_max: float, n_T: int, P_list: List[float]):
         T_list = get_T_list_from_range(self.tc * T_min, self.tc * T_max, n_point=n_T)
@@ -135,17 +139,8 @@ class Molecule(Base):
                 add_or_query(md_npt, ['molecule_id', 'T', 'P'])
 
     @property
-    def status_md_npt(self) -> Union[int, List[int]]:
-        status = set([job.status for job in self.md_npt])
-        if len(status) == 1:
-            return self.md_npt[0].status
-        else:
-            if Status.STARTED in status or Status.BUILD in status:
-                self.set_status('md_npt', Status.FAILED)
-                return Status.FAILED
-            else:
-                return list(status)
-
+    def status_md_npt(self) -> List[int]:
+        return list(set([job.status for job in self.md_npt]))
     # functions for md_npt
 
 

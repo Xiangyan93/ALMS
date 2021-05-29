@@ -22,7 +22,8 @@ def create(args: MonitorArgs):
     create_dir(os.path.join(DIR_DATA, 'tmp'))
     # crete jobs.
     for mol in session.query(Molecule).filter_by(active_learning=True).all():
-        mol.create_qm_cv(n_conformer=args.n_conformer)
+        fail_jobs = [job for job in mol.qm_cv if job.status == Status.FAILED]
+        mol.create_qm_cv(n_conformer=args.n_conformer + len(fail_jobs))
     session.commit()
 
 
@@ -55,10 +56,11 @@ def analyze(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm)
     for job in session.query(QM_CV).filter_by(status=Status.SUBMITED).limit(args.n_analyze):
         if not job_manager.is_running(job.slurm_name):
             result = simulator.analyze(os.path.join(job.ms_dir, 'gaussian.log'))
-            if result is None:
+            if result is None or result == 'imaginary frequencies':
+                job.result = result
                 job.status = Status.FAILED
             else:
-                job.update_dict('result', result)
+                job.result = json.dumps(result)
                 job.status = Status.ANALYZED
             session.commit()
 

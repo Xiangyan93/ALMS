@@ -16,6 +16,9 @@ class Args(Tap):
 def main(args: Args):
     if args.task == 'qm_cv':
         jobs = session.query(QM_CV)
+        for mol in session.query(Molecule):
+            if len(mol.status_qm_cv) == 1 and mol.status_qm_cv[0] == Status.FAILED:
+                print(f'{mol.id} failed.')
     elif args.task == 'md_npt':
         jobs = session.query(MD_NPT)
     else:

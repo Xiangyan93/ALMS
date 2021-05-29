@@ -191,15 +191,14 @@ def _submit_jobs(jobs_to_run: List, simulator: Npt, job_manager: Slurm, n_gmx_mu
 def _get_n_mols(n_mol: int, eq_status: int = None, in_status: int = None) -> List[Molecule]:
     mols = []
     for mol in session.query(Molecule).filter_by(active_learning=True):
-        if mol.status_md_npt.__class__ == int:
-            if mol.status_md_npt == eq_status:
+        if eq_status is not None:
+            if len(mol.status_md_npt) == 1 and mol.status_md_npt[0] == eq_status:
                 mols.append(mol)
-            elif in_status is not None and mol.status_md_npt == in_status:
-                mols.append(mol)
-        elif mol.status_md_npt.__class__ == list:
+        elif in_status is not None:
             if in_status in mol.status_md_npt:
                 mols.append(mol)
-
+        else:
+            raise RuntimeError('error.')
         if len(mols) == n_mol:
             return mols
     else:

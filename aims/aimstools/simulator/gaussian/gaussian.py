@@ -45,7 +45,7 @@ class GaussianSimulator:
         if content.find('Error termination') > -1:
             return None
         if content.find('imaginary frequencies') > -1:
-            return None
+            return 'imaginary frequencies'
 
         result = {'EE': None, 'EE+ZPE': None, 'T': [], 'scale': [], 'cv': [], 'cv_corrected': [], 'FE': []}
         f = open(log)
