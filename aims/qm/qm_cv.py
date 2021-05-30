@@ -4,6 +4,7 @@ import os
 CWD = os.path.dirname(os.path.abspath(__file__))
 DIR_DATA = os.path.join(CWD, '..', '..', 'data')
 import json
+from tqdm import tqdm
 from ..args import MonitorArgs
 from ..database import *
 from ..aimstools.simulator.gaussian import GaussianSimulator
@@ -53,7 +54,7 @@ def run(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm):
 def analyze(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm):
     print('Analyzing results of qm_cv')
     job_manager.update_stored_jobs()
-    for job in session.query(QM_CV).filter_by(status=Status.SUBMITED).limit(args.n_analyze):
+    for job in tqdm(session.query(QM_CV).filter_by(status=Status.SUBMITED).limit(args.n_analyze), total=args.n_analyze):
         if not job_manager.is_running(job.slurm_name):
             result = simulator.analyze(os.path.join(job.ms_dir, 'gaussian.log'))
             if result is None or result == 'imaginary frequencies':
