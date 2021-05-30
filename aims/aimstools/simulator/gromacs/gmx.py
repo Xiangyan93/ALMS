@@ -779,3 +779,18 @@ class GMX:
             info = info.drop(['#'], axis=1)
             return info
         return None
+
+    @staticmethod
+    def get_n_mols_from_top(top):
+        n1 = 10000  # the line start with "[ molecules ]"
+        n2 = 100000  # the line end for "[ molecules ]"
+        n_mols = 0
+        for i, line in enumerate(open(top).readlines()):
+            if line == '[ molecules ]\n':
+                n1 = i
+            if line.startswith('[') and i > n1:
+                n2 = i
+                break
+            if n1 < i < n2 and len(line.split()) == 2:
+                n_mols += int(line.split()[1])
+        return n_mols

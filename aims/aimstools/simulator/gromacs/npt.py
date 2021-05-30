@@ -257,6 +257,7 @@ class Npt(GmxSimulation):
             le_and_stderr.append(te_and_stderr[0] + pv_and_stderr[0])
             le_and_stderr.append(te_and_stderr[1] + pv_and_stderr[1])
             ad_dict = {
+                'n_mols': self.gmx.get_n_mols_from_top('%s/topol.top' % path),
                 'density': [i / 1000 for i in density_and_stderr],  # g/mL
                 'length': time_sim,
                 'converge': when,

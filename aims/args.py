@@ -132,6 +132,11 @@ class MonitorArgs(SoftwareArgs):
             self.n_hypercores = self.n_cores
 
 
+class ExportArgs(Tap):
+    property: Literal['density', 'cp']
+    """The property to export."""
+
+
 class DMPNNArgs(Tap):
     no_cuda: bool = False
     """Turn off cuda (i.e., use CPU instead of GPU)."""
