@@ -41,6 +41,7 @@ def export(args: ExportArgs):
             d['P'] += P_list
             d['cp'] += (cp_inter + cp_intra).tolist()
             d['red_T'] += (np.asarray(T_list) / mol.tc).tolist()
+        pd.DataFrame(d).to_csv('cp.csv', index=False)
 
     elif args.property == 'density':
         d = {

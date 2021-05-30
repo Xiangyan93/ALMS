@@ -132,8 +132,8 @@ class Npt(GmxSimulation):
 
         info_dict = dict()
         try:
-            npt_edr = os.path.join(path, 'npt.edr')
-            hvap_edr = os.path.join(path, 'hvap.edr')
+            npt_edr = 'npt.edr'
+            hvap_edr = 'hvap.edr'
 
             df = edr_to_df(npt_edr)
             df_hvap = edr_to_df(hvap_edr)
@@ -146,7 +146,7 @@ class Npt(GmxSimulation):
             ### Check the ensemble. KS test on the distribution of kinetic energy
             ### TODO This can be optimized
             data = pv.data.GromacsParser(self.gmx.GMX_EXE).get_simulation_data(
-                mdp='%s/grompp-npt.mdp' % path, top='%s/topol.top' % path, edr=npt_edr)
+                mdp='grompp-npt.mdp', top='topol.top', edr=npt_edr)
             p = pv.kinetic_energy.distribution(data, strict=True, verbosity=0)
             # If test does not pass, set the desired temperature to t_real.
             # Because small deviation in temperature exists for Langevin thermostat
@@ -191,7 +191,7 @@ class Npt(GmxSimulation):
                     return info_dict
 
             ### Check structure freezing using Diffusion of COM of molecules. Only use last 400 ps data
-            diffusion, _ = self.gmx.diffusion('%s/npt.xtc' % path, '%s/npt.tpr' % path, mol=True, begin=time_sim - 400)
+            diffusion, _ = self.gmx.diffusion('npt.xtc', 'npt.tpr', mol=True, begin=time_sim - 400)
             if diffusion < 1E-8:  # cm^2/s
                 if time_sim > cutoff_time:
                     info_dict['failed'] = True
@@ -233,7 +233,7 @@ class Npt(GmxSimulation):
             for i in range(nblock):
                 begin = when + blocksize * i
                 end = when + blocksize * (i + 1)
-                expan, compr = self.gmx.get_fluct_props('%s/npt.edr' % path, begin=begin, end=end)
+                expan, compr = self.gmx.get_fluct_props('npt.edr', begin=begin, end=end)
                 expan_list.append(expan)
                 compr_list.append(compr)
             expansion, expan_stderr = np.mean(expan_list), np.std(expan_list, ddof=1) / np.sqrt(nblock)
@@ -257,7 +257,7 @@ class Npt(GmxSimulation):
             le_and_stderr.append(te_and_stderr[0] + pv_and_stderr[0])
             le_and_stderr.append(te_and_stderr[1] + pv_and_stderr[1])
             ad_dict = {
-                'n_mols': self.gmx.get_n_mols_from_top('%s/topol.top' % path),
+                'n_mols': self.gmx.get_n_mols_from_top('topol.top'),
                 'density': [i / 1000 for i in density_and_stderr],  # g/mL
                 'length': time_sim,
                 'converge': when,
