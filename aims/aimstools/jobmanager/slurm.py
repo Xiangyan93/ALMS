@@ -189,7 +189,7 @@ class Slurm:
             if job_str.startswith('JobId'):
                 job = self._get_job_from_str(job_str)
                 # Show all jobs. Then check the user
-                if job.user == self.username and job.partition == self.partition:
+                if job.user == self.username:
                     jobs.append(job)
         return jobs
 
