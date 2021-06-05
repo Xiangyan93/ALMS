@@ -47,4 +47,11 @@ collect results.
    ```
    python3 monitor.py --task md_npt --partition gtx --n_cores 16 --n_hypercores 32 --n_gpu 2 --n_jobs 8 --packmol_exe $PACKMOL --dff_root $DFF --gmx_exe_analysis gmx_serial --gmx_exe_mdrun gmx_gpu
    ```
-   
+5. Export simulation data.
+   ```
+   python3 export.py --property cp
+   ```
+6. Train D-MPNN
+   ```
+   python3 train.py --data_path cp.csv --dataset_type regression --save_dir ml-models/cp-T-sum-al0.5 --split_type random --split_sizes 1.0 0.0 0.0 --metric mae --num_fold 1 --ensemble_size 1 --epochs 100 --save_preds --smiles_columns smiles --features_columns T --target_columns cp --features_generator rdkit_2d --num_workers 6 --aggregation sum
+   ```

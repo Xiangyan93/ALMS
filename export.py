@@ -24,7 +24,7 @@ def export(args: ExportArgs):
                 continue
             n_mols = [json.loads(job.result)['n_mols'] for job in jobs]
             assert len(set(n_mols)) == 1
-            einter = [json.loads(job.result)['einter'] / n_mols[0] for job in jobs]
+            einter = [json.loads(job.result)['einter'][0] / n_mols[0] for job in jobs]
             T_list = [job.T for job in jobs]
             P_list = [job.P for job in jobs]
             cp_inter = get_cp_inter(T_list, P_list, einter)

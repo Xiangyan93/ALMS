@@ -47,6 +47,7 @@ def polyval_derivative(x: Union[float, np.ndarray, List[float]],
     :return: y: float
              dy/dx: float
     '''
+    x = np.asarray(x)
     y = np_polyval(x, coeff)
 
     degree = len(coeff) - 1

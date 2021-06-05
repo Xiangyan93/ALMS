@@ -8,7 +8,7 @@ from aims.aimstools.utils import polyfit, polyval_derivative
 
 def get_cp_inter(T_list: List[float], P_list: List[float], E_list: List[float],
                  algorithm: Literal['poly3'] = 'poly3'):
-    if len(P_list) == 1:
+    if len(set(P_list)) == 1:
         if len(T_list) < 5:
             raise RuntimeError(f'{T_list}: data points less than 5.')
         if algorithm == 'poly3':
