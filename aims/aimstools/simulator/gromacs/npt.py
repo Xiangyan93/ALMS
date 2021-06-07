@@ -279,7 +279,7 @@ class Npt(GmxSimulation):
         os.chdir(cwd)
         return info_dict
 
-    def extend(self, path: str, continue_n: int, dt: float = 0.002, n_jobs: int = 1) -> List[str]:
+    def extend(self, path: str, continue_n: int, dt: float = 0.002, n_srun: int = 1, n_tomp: int = 1) -> List[str]:
         cwd = os.getcwd()
         os.chdir(path)
 
@@ -287,13 +287,13 @@ class Npt(GmxSimulation):
         extend = continue_n * dt
         self.gmx.extend_tpr('npt.tpr', extend, silent=True)
         # Extending NPT production
-        cmd = self.gmx.mdrun(name='npt', nprocs=n_jobs, extend=True, get_cmd=True)
+        cmd = self.gmx.mdrun(name='npt', nprocs=n_srun, n_omp=n_tomp, extend=True, get_cmd=True)
         commands.append(cmd)
 
         # Rerun enthalpy of vaporization
         commands.append('export GMX_MAXCONSTRWARN=-1')
         # Use OpenMP instead of MPI when rerun hvap
-        cmd = self.gmx.mdrun(name='hvap', nprocs=n_jobs, n_omp=n_jobs, rerun='npt.xtc', get_cmd=True)
+        cmd = self.gmx.mdrun(name='hvap', nprocs=1, n_omp=n_srun * n_tomp, rerun='npt.xtc', get_cmd=True)
         commands.append(cmd)
 
         os.chdir(cwd)

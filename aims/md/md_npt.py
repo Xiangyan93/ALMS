@@ -109,7 +109,8 @@ def extend(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
         for job in jobs_to_extend:
             continue_n = json.loads(job.result).get('continue_n')
             assert continue_n is not None
-            commands = simulator.extend(path=job.ms_dir,continue_n=continue_n, n_jobs=args.n_hypercores)
+            commands = simulator.extend(path=job.ms_dir, continue_n=continue_n, n_srun=args.n_cores,
+                                        n_tomp=int(args.n_hypercores / args.n_cores))
             job.commands_extend = json.dumps(commands)
             job.status = Status.EXTENDED
             session.commit()
