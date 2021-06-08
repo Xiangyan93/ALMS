@@ -62,6 +62,7 @@ class Molecule(Base):
     id = Column(Integer, primary_key=True)
     smiles = Column(String(255), unique=True)
     active_learning = Column(Boolean, default=False)
+    fail = Column(Boolean, default=False)
     features = Column(Text)
     property_exp = Column(Text)
     property_ml = Column(Text)

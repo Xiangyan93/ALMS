@@ -13,10 +13,12 @@ def export(args: ExportArgs):
             'smiles': [],
             'T': [],
             'P': [],
+            'cp_inter': [],
+            'cp_intra': [],
             'cp': [],
             'red_T': []
         }
-        mols = session.query(Molecule)
+        mols = session.query(Molecule)# .filter_by(smiles='CC1=C(C)C(=O)C(C)=C(C)C1=O')
         for mol in tqdm(mols, total=mols.count()):
             # intermolecular cp.
             jobs = [job for job in mol.md_npt if job.status == Status.ANALYZED]
@@ -28,6 +30,8 @@ def export(args: ExportArgs):
             T_list = [job.T for job in jobs]
             P_list = [job.P for job in jobs]
             cp_inter = get_cp_inter(T_list, P_list, einter)
+            if cp_inter is None:
+                continue
             # intramolecular cp.
             jobs = [job for job in mol.qm_cv if job.status == Status.ANALYZED]
             if len(jobs) == 0:
@@ -39,10 +43,16 @@ def export(args: ExportArgs):
             d['smiles'] += [mol.smiles] * len(T_list)
             d['T'] += T_list
             d['P'] += P_list
+            #if not is_monotonic((cp_inter + cp_intra).tolist()):
+            # print(mol.smiles)
+                #print(cp_intra, cp_inter)
+                #print((cp_inter + cp_intra).tolist())
+                # exit()
             d['cp'] += (cp_inter + cp_intra).tolist()
+            d['cp_inter'] += cp_inter.tolist()
+            d['cp_intra'] += cp_intra.tolist()
             d['red_T'] += (np.asarray(T_list) / mol.tc).tolist()
         pd.DataFrame(d).to_csv('cp.csv', index=False)
-
     elif args.property == 'density':
         d = {
             'smiles': [],
@@ -62,6 +72,10 @@ def export(args: ExportArgs):
             d['density_u'].append(result['density'][1] * 1000)
             d['red_T'].append(job.T / job.molecule.tc)
         pd.DataFrame(d).to_csv('density.csv', index=False)
+    elif args.property is None:
+        smiles = [mol.smiles for mol in session.query(Molecule)]
+        al = [mol.active_learning for mol in session.query(Molecule)]
+        pd.DataFrame({'smiles': smiles, 'active_learning': al}).to_csv('molecules.csv', index=False)
 
 
 if __name__ == '__main__':

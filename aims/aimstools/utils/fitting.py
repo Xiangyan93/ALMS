@@ -33,7 +33,7 @@ def polyfit(x: List[float], y: List[float], degree: int, weight: List[float] = N
 
 
 def polyval_derivative(x: Union[float, np.ndarray, List[float]],
-                       coeff: List[float]) -> Tuple[Union[float, np.ndarray], float]:
+                       coeff: List[float]) -> Tuple[Union[float, np.ndarray], Union[float, np.ndarray]]:
     '''
     when degree == 2, len(coeff) = 3,
         y = c0 + c1 * x + c2 * xx

@@ -36,11 +36,7 @@ class SubmitArgs(Tap):
         return np.unique(smiles).tolist()
 
 
-class ActiveLearningArgs(Tap):
-    stop_uncertainty: float = 0.2
-    """Tolerance of unsupervised active learning, should be a number from 0 to 1."""
-    rerun: bool = False
-    """Rerun active learning from scratch."""
+class KernelArgs(Tap):
     n_jobs: int = 1
     """The cpu numbers used for parallel computing."""
 
@@ -105,6 +101,8 @@ class MonitorArgs(SoftwareArgs):
     """Number of temperatures for simultions."""
     P_list: List[float] = [1]
     """Pressures for simulations."""
+    stop_uncertainty: float = None
+    """Tolerance of unsupervised active learning, should be a number from 0 to 1."""
 
     @property
     def job_manager_(self):
@@ -133,5 +131,5 @@ class MonitorArgs(SoftwareArgs):
 
 
 class ExportArgs(Tap):
-    property: Literal['density', 'cp']
-    """The property to export."""
+    property: Literal['density', 'cp'] = None
+    """The property to export. None will output molecules list."""

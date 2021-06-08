@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
 import math
 import numpy as np
 from pandas import Series
@@ -40,7 +41,7 @@ def is_converged(series: Series, frac_min=0.5) -> (bool, float):
     return True, series.index[t0]
 
 
-def efficiency_with_block_size(l: [float]) -> [float]:
+def efficiency_with_block_size(l: List[float]) -> [float]:
     array = np.array(l)
     n_points = len(l)
     bsize_list = []
@@ -79,3 +80,41 @@ def mean_and_uncertainty(series: Series, inefficiency=None) -> (float, float):
         inefficiency = timeseries.statisticalInefficiency(array)
     return ave, np.std(array, ddof=1) / math.sqrt(len(array) / inefficiency)
 
+
+def is_monotonic(values: List[float]) -> bool:
+    m = (values[1] - values[0] > 0)
+    for i in range(2, len(values)):
+        if (values[i] - values[i-1] > 0) ^ m:
+            return False
+    return True
+
+
+def get_longest_monotonic_list(values: List[float], positive: bool = True,
+                               return_start_end: bool = False) -> List[float]:
+    """get longest monotonic list."""
+    start = 0
+    length = 1
+    if positive:
+        for i in range(len(values)):
+            print(i)
+            if len(values) - i <= length:
+                break
+
+            for j in range(i+1, len(values)):
+                if values[j] - values[j-1] > 0:
+                    continue
+                else:
+                    if j - i > length:
+                        start = i
+                        length = j - i
+                    break
+            else:
+                start = i
+                length = len(values) - i
+    else:
+        result = get_longest_monotonic_list([-v for v in values], positive=True)
+        return [-v for v in result]
+    if return_start_end:
+        return [start, start+length]
+    else:
+        return values[start:start+length]
