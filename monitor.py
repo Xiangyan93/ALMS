@@ -45,6 +45,8 @@ def active_learning(margs: MonitorArgs):
     dataset.update_args(args)
     # get pool data set.
     mols = mols_all.filter_by(active_learning=False)
+    if mols.count() == 0:
+        return
     df_pool = pd.DataFrame({'smiles': [mol.smiles for mol in mols],
                             'target': [0.] * mols.count()})
     dataset_pool = Dataset.from_df(args, df_pool)
