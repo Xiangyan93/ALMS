@@ -81,19 +81,20 @@ def monitor(args: MonitorArgs):
     job_manager = args.job_manager_
 
     while True:
-        print('create.\n\n')
-        create(args)
-        print('\nactive learning.\n\n')
+        print('Start a new loop\n'
+              'Step1: active learning.\n\n')
         active_learning(args)
-        print('\nbuild.\n\n')
+        print('Step2: create.\n\n')
+        create(args)
+        print('\nStep3: build.\n')
         build(args, simulator)
-        print('\nrun.\n\n')
+        print('\nStep4: run.\n')
         run(args, simulator, job_manager)
-        print('\nanalyze.\n\n')
+        print('\nStep5: analyze.\n')
         analyze(args, simulator, job_manager)
-        print('\nextend.\n\n')
+        print('\nStep6: extend.\n')
         extend(args, simulator, job_manager)
-        print('\nupdate failed mols.\n\n')
+        print('\nStep7: update failed mols.\n')
         update_fail_mols()
         print('Sleep %d minutes...' % args.t_sleep)
         time.sleep(args.t_sleep * 60)
