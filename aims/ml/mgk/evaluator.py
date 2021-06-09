@@ -297,9 +297,9 @@ class ActiveLearner(Evaluator):
             else:
                 self.train()
             print('**\tadding samples**\n')
+            self.add_sample()
             if self.stop():
                 break
-            self.add_sample()
         if self.args.save_dir is not None:
             self.log_df.to_csv('%s/active_learning.log' % self.args.save_dir,
                                sep='\t', index=False, float_format='%15.10f')
@@ -338,6 +338,8 @@ class ActiveLearner(Evaluator):
         elif self.args.learning_algorithm == 'unsupervised':
             y_pred, y_std = self.model.predict(X, return_std=True)
             self.max_uncertainty = y_std.max()
+            if self.max_uncertainty < self.args.stop_uncertainty:
+                return
             print('Add sample with maximum uncertainty: %f' % self.max_uncertainty)
             add_idx = self._get_add_samples_idx(y_std, pool_idx)
         elif self.args.learning_algorithm == 'random':

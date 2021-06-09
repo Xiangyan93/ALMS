@@ -20,25 +20,10 @@ def export(args: ExportArgs):
         }
         mols = session.query(Molecule)# .filter_by(smiles='CC1=C(C)C(=O)C(C)=C(C)C1=O')
         for mol in tqdm(mols, total=mols.count()):
-            # intermolecular cp.
-            jobs = [job for job in mol.md_npt if job.status == Status.ANALYZED]
-            if len(jobs) < 5:
+            results = get_cp(mol)
+            if results is None:
                 continue
-            n_mols = [json.loads(job.result)['n_mols'] for job in jobs]
-            assert len(set(n_mols)) == 1
-            einter = [json.loads(job.result)['einter'][0] / n_mols[0] for job in jobs]
-            T_list = [job.T for job in jobs]
-            P_list = [job.P for job in jobs]
-            cp_inter = get_cp_inter(T_list, P_list, einter)
-            if cp_inter is None:
-                continue
-            # intramolecular cp.
-            jobs = [job for job in mol.qm_cv if job.status == Status.ANALYZED]
-            if len(jobs) == 0:
-                continue
-            T_list_in = json.loads(jobs[0].result)['T']
-            CV_list = json.loads(jobs[0].result)['cv_corrected']
-            cp_intra = get_cp_intra(T_list_in=T_list_in, CV_list=CV_list, T_list_out=T_list)
+            T_list, P_list, cp, cp_inter, cp_intra = results
             # update dataframe
             d['smiles'] += [mol.smiles] * len(T_list)
             d['T'] += T_list
@@ -48,7 +33,7 @@ def export(args: ExportArgs):
                 #print(cp_intra, cp_inter)
                 #print((cp_inter + cp_intra).tolist())
                 # exit()
-            d['cp'] += (cp_inter + cp_intra).tolist()
+            d['cp'] += cp
             d['cp_inter'] += cp_inter.tolist()
             d['cp_intra'] += cp_intra.tolist()
             d['red_T'] += (np.asarray(T_list) / mol.tc).tolist()

@@ -9,25 +9,17 @@ import matplotlib.pyplot as plt
 
 
 def get_cp_inter(T_list: List[float], P_list: List[float], E_list: List[float],
-                 algorithm: Literal['poly3'] = 'poly3') -> Optional[np.ndarray]:
+                 algorithm: Literal['poly2'] = 'poly2') -> Optional[np.ndarray]:
     if len(set(P_list)) == 1:
         while True:
             if len(T_list) < 5:
                 raise RuntimeError(f'{T_list}: data points less than 5.')
-            if algorithm == 'poly3':
-                coefs, score = polyfit(T_list, E_list, 4)
-                if score > 0.999:
+            if algorithm == 'poly2':
+                coefs, score = polyfit(T_list, E_list, 2)
+                if score > 0.98:
                     _, dEdT = polyval_derivative(T_list, coefs)
-                    #plt.plot(T_list, E_list)
-                    #plt.plot(T_list, np_polyval(T_list, coefs))
-                    #plt.show()
                     return dEdT * 1000  # J/mol.K
                 else:
-                    print(score)
-                    _, dEdT = polyval_derivative(T_list, coefs)
-                    plt.plot(T_list, E_list)
-                    plt.plot(T_list, np_polyval(T_list, coefs))
-                    plt.show()
                     return None
     else:
         raise RuntimeError('TODO')
@@ -40,7 +32,7 @@ def get_cp_intra(T_list_in: List[float],
     return np_polyval(T_list_out, coefs)
 
 
-def get_cp(mol: Molecule) -> Optional[Tuple[List[float], List[float], List[float]]]:
+def get_cp(mol: Molecule) -> Optional[Tuple[List[float], List[float], List[float], np.ndarray, np.ndarray]]:
     jobs = [job for job in mol.md_npt if job.status == Status.ANALYZED]
     if len(jobs) < 5:
         return None
@@ -63,7 +55,7 @@ def get_cp(mol: Molecule) -> Optional[Tuple[List[float], List[float], List[float
     if not is_monotonic(cp):
         return None
     else:
-        return T_list, P_list, cp
+        return T_list, P_list, cp, cp_inter, cp_intra
 
 
 def update_fail_mols():
@@ -71,10 +63,12 @@ def update_fail_mols():
         if Status.ANALYZED not in mol.status_qm_cv:
             continue
         status = mol.status_md_npt
+
         if len(status) > 2:
             continue
-        elif not(len(status) == 2 and status[0] == Status.ANALYZED and status[1] == Status.FAILED):
-            continue
+        elif len(status) == 2:
+            if not(status[0] == Status.ANALYZED and status[1] == Status.FAILED):
+                continue
         elif status[0] != Status.ANALYZED:
             continue
 
