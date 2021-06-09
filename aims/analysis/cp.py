@@ -64,7 +64,7 @@ def update_fail_mols():
             continue
         status = mol.status_md_npt
 
-        if len(status) > 2:
+        if len(status) > 2 or len(status) == 0:
             continue
         elif len(status) == 2:
             if not(status[0] == Status.ANALYZED and status[1] == Status.FAILED):
