@@ -15,27 +15,24 @@ def export(args: ExportArgs):
             'P': [],
             'cp_inter': [],
             'cp_intra': [],
+            'cp_pv': [],
             'cp': [],
             'red_T': []
         }
-        mols = session.query(Molecule)# .filter_by(smiles='CC1=C(C)C(=O)C(C)=C(C)C1=O')
+        mols = session.query(Molecule)
         for mol in tqdm(mols, total=mols.count()):
             results = get_cp(mol)
             if results is None:
                 continue
-            T_list, P_list, cp, cp_inter, cp_intra = results
+            T_list, P_list, cp, cp_inter, cp_intra, cp_pv = results
             # update dataframe
             d['smiles'] += [mol.smiles] * len(T_list)
             d['T'] += T_list
             d['P'] += P_list
-            #if not is_monotonic((cp_inter + cp_intra).tolist()):
-            # print(mol.smiles)
-                #print(cp_intra, cp_inter)
-                #print((cp_inter + cp_intra).tolist())
-                # exit()
             d['cp'] += cp
             d['cp_inter'] += cp_inter.tolist()
             d['cp_intra'] += cp_intra.tolist()
+            d['cp_pv'] += cp_pv.tolist()
             d['red_T'] += (np.asarray(T_list) / mol.tc).tolist()
         pd.DataFrame(d).to_csv('cp.csv', index=False)
     elif args.property == 'density':

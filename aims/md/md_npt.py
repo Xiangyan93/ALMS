@@ -26,13 +26,15 @@ def create(args: MonitorArgs):
     create_dir(os.path.join(DIR_DATA, 'slurm'))
     create_dir(os.path.join(DIR_DATA, 'tmp'))
     # crete jobs.
-    for mol in session.query(Molecule).filter_by(active_learning=True):
+    mols = session.query(Molecule).filter_by(active_learning=True)
+    for mol in tqdm(mols, total=mols.count()):
         mol.create_md_npt(T_min=args.T_range[0], T_max=args.T_range[1], n_T=args.n_Temp, P_list=args.P_list)
     session.commit()
 
 
 def build(args: MonitorArgs, simulator: Npt):
-    for mol in _get_n_mols(args.n_prepare, eq_status=Status.STARTED):
+    mols = _get_n_mols(args.n_prepare, eq_status=Status.STARTED)
+    for mol in tqdm(mols, total=len(mols)):
         # create dirs.
         path = os.path.join(mol.ms_dir, 'md_npt', 'build')
         if not os.path.exists(path):
@@ -44,7 +46,8 @@ def build(args: MonitorArgs, simulator: Npt):
             job.status = Status.BUILD
         session.commit()
 
-    for job in session.query(MD_NPT).filter_by(status=Status.BUILD):
+    jobs = session.query(MD_NPT).filter_by(status=Status.BUILD)
+    for job in tqdm(jobs, total=jobs.count()):
         job.commands_mdrun = json.dumps(
             simulator.prepare(path=job.ms_dir, n_jobs=args.n_hypercores, T=job.T, P=job.P, drde=True, T_basic=298)
         )

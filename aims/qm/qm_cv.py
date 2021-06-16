@@ -22,14 +22,16 @@ def create(args: MonitorArgs):
     create_dir(os.path.join(DIR_DATA, 'slurm'))
     create_dir(os.path.join(DIR_DATA, 'tmp'))
     # crete jobs.
-    for mol in session.query(Molecule).filter_by(active_learning=True).all():
+    mols = session.query(Molecule).filter_by(active_learning=True)
+    for mol in tqdm(mols, total=mols.count()):
         fail_jobs = [job for job in mol.qm_cv if job.status == Status.FAILED]
         mol.create_qm_cv(n_conformer=args.n_conformer + len(fail_jobs))
     session.commit()
 
 
 def build(args: MonitorArgs, simulator: GaussianSimulator):
-    for job in session.query(QM_CV).filter_by(status=Status.STARTED).limit(args.n_prepare):
+    jobs = session.query(QM_CV).filter_by(status=Status.STARTED).limit(args.n_prepare)
+    for job in tqdm(jobs, total=jobs.count()):
         job.commands = json.dumps(
             simulator.prepare(job.molecule.smiles, path=job.ms_dir, task='qm_cv',
                               tmp_dir=os.path.join(DIR_DATA, 'tmp', str(job.id)), seed=job.seed)

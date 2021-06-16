@@ -2,23 +2,26 @@
 # -*- coding: utf-8 -*-
 from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
 import numpy as np
+import openbabel.pybel as pybel
 from numpy.polynomial.polynomial import polyval as np_polyval
 from ..database.models import *
 from aims.aimstools.utils import polyfit, polyval_derivative, is_monotonic
-import matplotlib.pyplot as plt
 
 
-def get_cp_inter(T_list: List[float], P_list: List[float], E_list: List[float],
-                 algorithm: Literal['poly2'] = 'poly2') -> Optional[np.ndarray]:
+def get_V_dVdT(T_list: List[float],
+               P_list: List[float],
+               V_list: List[float],
+               algorithm: Literal['poly2'] = 'poly2',
+               r2_cutoff: float = 0.98) -> Optional[Tuple[np.ndarray, np.ndarray]]:
     if len(set(P_list)) == 1:
         while True:
             if len(T_list) < 5:
                 raise RuntimeError(f'{T_list}: data points less than 5.')
             if algorithm == 'poly2':
-                coefs, score = polyfit(T_list, E_list, 2)
-                if score > 0.98:
-                    _, dEdT = polyval_derivative(T_list, coefs)
-                    return dEdT * 1000  # J/mol.K
+                coefs, score = polyfit(T_list, V_list, 2)
+                if score > r2_cutoff:
+                    V, dVdT = polyval_derivative(T_list, coefs)
+                    return V, dVdT
                 else:
                     return None
     else:
@@ -32,18 +35,29 @@ def get_cp_intra(T_list_in: List[float],
     return np_polyval(T_list_out, coefs)
 
 
-def get_cp(mol: Molecule) -> Optional[Tuple[List[float], List[float], List[float], np.ndarray, np.ndarray]]:
+def get_cp(mol: Molecule) -> Optional[Tuple[List[float], List[float], List[float], np.ndarray, np.ndarray, np.ndarray]]:
     jobs = [job for job in mol.md_npt if job.status == Status.ANALYZED]
     if len(jobs) < 5:
         return None
     n_mols = [json.loads(job.result)['n_mols'] for job in jobs]
     assert len(set(n_mols)) == 1
-    einter = [json.loads(job.result)['einter'][0] / n_mols[0] for job in jobs]
+    # pv cp
     T_list = [job.T for job in jobs]
     P_list = [job.P for job in jobs]
-    cp_inter = get_cp_inter(T_list, P_list, einter)
-    if cp_inter is None:
+    density = [json.loads(job.result)['density'][0] for job in jobs]
+    molwt = pybel.readstring('smi', mol.smiles).molwt
+    _ = get_V_dVdT(T_list, P_list, density, algorithm='poly2', r2_cutoff=0.98)
+    if _ is None:
         return None
+    else:
+        cp_pv = - molwt * np.asarray(P_list) * _[1] * 0.1 / np.asarray(density) ** 2  # J/mol.K
+    # intermolecular cp.
+    einter = [json.loads(job.result)['einter'][0] / n_mols[0] for job in jobs]
+    _ = get_V_dVdT(T_list, P_list, einter, algorithm='poly2', r2_cutoff=0.98)
+    if _ is None:
+        return None
+    else:
+        cp_inter = _[1] * 1000  # J/mol.K
     # intramolecular cp.
     jobs = [job for job in mol.qm_cv if job.status == Status.ANALYZED]
     if len(jobs) == 0:
@@ -51,11 +65,11 @@ def get_cp(mol: Molecule) -> Optional[Tuple[List[float], List[float], List[float
     T_list_in = json.loads(jobs[0].result)['T']
     CV_list = json.loads(jobs[0].result)['cv_corrected']
     cp_intra = get_cp_intra(T_list_in=T_list_in, CV_list=CV_list, T_list_out=T_list)
-    cp = (cp_inter + cp_intra).tolist()
+    cp = (cp_inter + cp_intra + cp_pv).tolist()
     if not is_monotonic(cp):
         return None
     else:
-        return T_list, P_list, cp, cp_inter, cp_intra
+        return T_list, P_list, cp, cp_inter, cp_intra, cp_pv
 
 
 def update_fail_mols():
