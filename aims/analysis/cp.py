@@ -1,31 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
 import numpy as np
 import openbabel.pybel as pybel
 from numpy.polynomial.polynomial import polyval as np_polyval
 from ..database.models import *
-from aims.aimstools.utils import polyfit, polyval_derivative, is_monotonic
-
-
-def get_V_dVdT(T_list: List[float],
-               P_list: List[float],
-               V_list: List[float],
-               algorithm: Literal['poly2'] = 'poly2',
-               r2_cutoff: float = 0.98) -> Optional[Tuple[np.ndarray, np.ndarray]]:
-    if len(set(P_list)) == 1:
-        while True:
-            if len(T_list) < 5:
-                raise RuntimeError(f'{T_list}: data points less than 5.')
-            if algorithm == 'poly2':
-                coefs, score = polyfit(T_list, V_list, 2)
-                if score > r2_cutoff:
-                    V, dVdT = polyval_derivative(T_list, coefs)
-                    return V, dVdT
-                else:
-                    return None
-    else:
-        raise RuntimeError('TODO')
+from aims.aimstools.utils import polyfit, is_monotonic, get_V_dVdT
 
 
 def get_cp_intra(T_list_in: List[float],
@@ -74,10 +53,11 @@ def get_cp(mol: Molecule) -> Optional[Tuple[List[float], List[float], List[float
 
 def update_fail_mols():
     for mol in session.query(Molecule).filter_by(active_learning=True):
+        # at least one QM job is success.
         if Status.ANALYZED not in mol.status_qm_cv:
             continue
         status = mol.status_md_npt
-
+        # MD jobs must be all ANALYZED or FAILED.
         if len(status) > 2 or len(status) == 0:
             continue
         elif len(status) == 2:

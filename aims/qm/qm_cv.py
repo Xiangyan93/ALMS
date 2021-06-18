@@ -60,7 +60,7 @@ def analyze(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm)
     for job in tqdm(jobs_to_analyze, total=jobs_to_analyze.count()):
         if not job_manager.is_running(job.slurm_name):
             result = simulator.analyze(os.path.join(job.ms_dir, 'gaussian.log'))
-            if result is None or result == 'imaginary frequencies':
+            if result is None or result == 'imaginary frequencies' or len(result['T']) == 0:
                 job.result = result
                 job.status = Status.FAILED
             else:

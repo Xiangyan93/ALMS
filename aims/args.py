@@ -131,5 +131,5 @@ class MonitorArgs(SoftwareArgs):
 
 
 class ExportArgs(Tap):
-    property: Literal['density', 'cp'] = None
+    property: Literal['density', 'cp', 'hvap'] = None
     """The property to export. None will output molecules list."""

@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 from tqdm import tqdm
 import pandas as pd
+import numpy as np
 from aims.args import ExportArgs
 from aims.database.models import *
-from aims.analysis.cp import *
+from aims.analysis import *
 
 
 def export(args: ExportArgs):
@@ -19,7 +20,7 @@ def export(args: ExportArgs):
             'cp': [],
             'red_T': []
         }
-        mols = session.query(Molecule)
+        mols = session.query(Molecule).filter_by(active_learning=True)
         for mol in tqdm(mols, total=mols.count()):
             results = get_cp(mol)
             if results is None:
@@ -41,19 +42,42 @@ def export(args: ExportArgs):
             'T': [],
             'P': [],
             'density': [],
-            'density_u': [],
             'red_T': []
         }
-        jobs = session.query(MD_NPT).filter_by(status=Status.ANALYZED)
-        for job in tqdm(jobs, total=jobs.count()):
-            result = json.loads(job.result)
-            d['smiles'].append(job.molecule.smiles)
-            d['T'].append(job.T)
-            d['P'].append(job.P)
-            d['density'].append(result['density'][0] * 1000)  # kg/m3
-            d['density_u'].append(result['density'][1] * 1000)
-            d['red_T'].append(job.T / job.molecule.tc)
+        mols = session.query(Molecule).filter_by(active_learning=True)
+        for mol in tqdm(mols, total=mols.count()):
+            results = get_density(mol)
+            if results is None:
+                continue
+            T_list, P_list, density = results
+            # update dataframe
+            d['smiles'] += [mol.smiles] * len(T_list)
+            d['T'] += T_list
+            d['P'] += P_list
+            d['density'] += density
+            d['red_T'] += (np.asarray(T_list) / mol.tc).tolist()
         pd.DataFrame(d).to_csv('density.csv', index=False)
+    elif args.property == 'hvap':
+        d = {
+            'smiles': [],
+            'T': [],
+            'P': [],
+            'hvap': [],
+            'red_T': []
+        }
+        mols = session.query(Molecule).filter_by(active_learning=True)
+        for mol in tqdm(mols, total=mols.count()):
+            results = get_hvap(mol)
+            if results is None:
+                continue
+            T_list, P_list, hvap = results
+            # update dataframe
+            d['smiles'] += [mol.smiles] * len(T_list)
+            d['T'] += T_list
+            d['P'] += P_list
+            d['hvap'] += hvap
+            d['red_T'] += (np.asarray(T_list) / mol.tc).tolist()
+        pd.DataFrame(d).to_csv('hvap.csv', index=False)
     elif args.property is None:
         smiles = [mol.smiles for mol in session.query(Molecule)]
         al = [mol.active_learning for mol in session.query(Molecule)]
