@@ -16,18 +16,16 @@ class Args(Tap):
 def main(args: Args):
     if args.task == 'qm_cv':
         jobs = session.query(QM_CV)
-        for mol in session.query(Molecule).filter_by(active_learning=True):
-            if Status.ANALYZED not in mol.status_qm_cv and Status.FAILED in mol.status_qm_cv:
-                print(f'{mol.id} failed.')
     elif args.task == 'md_npt':
         jobs = session.query(MD_NPT)
     else:
         return
 
-    print('There are total %i jobs' % jobs.count())
-    for i, status in enumerate(['FAILED', 'STARTED', 'BUILD', 'PREPARED', 'SUBMITED', 'DONE', 'ANALYZED',
-                                'NOT_CONVERGED', 'EXTENDED']):
-        print('There are %i jobs in status %s.' % (jobs.filter_by(status=i-1).count(), status))
+    for job in jobs.filter_by(status=Status.FAILED):
+        if job.sh_file is not None:
+            job.status = Status.SUBMITED
+            job.result = None
+    session.commit()
 
 
 if __name__ == '__main__':

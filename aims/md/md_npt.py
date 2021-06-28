@@ -26,13 +26,15 @@ def create(args: MonitorArgs):
     create_dir(os.path.join(DIR_DATA, 'slurm'))
     create_dir(os.path.join(DIR_DATA, 'tmp'))
     # crete jobs.
-    for mol in session.query(Molecule).filter_by(active_learning=True):
+    mols = session.query(Molecule).filter_by(active_learning=True)
+    for mol in tqdm(mols, total=mols.count()):
         mol.create_md_npt(T_min=args.T_range[0], T_max=args.T_range[1], n_T=args.n_Temp, P_list=args.P_list)
     session.commit()
 
 
 def build(args: MonitorArgs, simulator: Npt):
-    for mol in _get_n_mols(args.n_prepare, eq_status=Status.STARTED):
+    mols = _get_n_mols(args.n_prepare, eq_status=Status.STARTED)
+    for mol in tqdm(mols, total=len(mols)):
         # create dirs.
         path = os.path.join(mol.ms_dir, 'md_npt', 'build')
         if not os.path.exists(path):
@@ -44,7 +46,8 @@ def build(args: MonitorArgs, simulator: Npt):
             job.status = Status.BUILD
         session.commit()
 
-    for job in session.query(MD_NPT).filter_by(status=Status.BUILD):
+    jobs = session.query(MD_NPT).filter_by(status=Status.BUILD)
+    for job in tqdm(jobs, total=jobs.count()):
         job.commands_mdrun = json.dumps(
             simulator.prepare(path=job.ms_dir, n_jobs=args.n_hypercores, T=job.T, P=job.P, drde=True, T_basic=298)
         )
@@ -109,7 +112,8 @@ def extend(args: MonitorArgs, simulator: Npt, job_manager: Slurm):
         for job in jobs_to_extend:
             continue_n = json.loads(job.result).get('continue_n')
             assert continue_n is not None
-            commands = simulator.extend(path=job.ms_dir,continue_n=continue_n, n_jobs=args.n_hypercores)
+            commands = simulator.extend(path=job.ms_dir, continue_n=continue_n, n_srun=args.n_cores,
+                                        n_tomp=int(args.n_hypercores / args.n_cores))
             job.commands_extend = json.dumps(commands)
             job.status = Status.EXTENDED
             session.commit()
@@ -191,15 +195,14 @@ def _submit_jobs(jobs_to_run: List, simulator: Npt, job_manager: Slurm, n_gmx_mu
 def _get_n_mols(n_mol: int, eq_status: int = None, in_status: int = None) -> List[Molecule]:
     mols = []
     for mol in session.query(Molecule).filter_by(active_learning=True):
-        if mol.status_md_npt.__class__ == int:
-            if mol.status_md_npt == eq_status:
+        if eq_status is not None:
+            if len(mol.status_md_npt) == 1 and mol.status_md_npt[0] == eq_status:
                 mols.append(mol)
-            elif in_status is not None and mol.status_md_npt == in_status:
-                mols.append(mol)
-        elif mol.status_md_npt.__class__ == list:
+        elif in_status is not None:
             if in_status in mol.status_md_npt:
                 mols.append(mol)
-
+        else:
+            raise RuntimeError('error.')
         if len(mols) == n_mol:
             return mols
     else:

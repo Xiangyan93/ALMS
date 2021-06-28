@@ -4,6 +4,7 @@ import os
 CWD = os.path.dirname(os.path.abspath(__file__))
 DIR_DATA = os.path.join(CWD, '..', '..', 'data')
 import json
+from tqdm import tqdm
 from ..args import MonitorArgs
 from ..database import *
 from ..aimstools.simulator.gaussian import GaussianSimulator
@@ -21,13 +22,16 @@ def create(args: MonitorArgs):
     create_dir(os.path.join(DIR_DATA, 'slurm'))
     create_dir(os.path.join(DIR_DATA, 'tmp'))
     # crete jobs.
-    for mol in session.query(Molecule).filter_by(active_learning=True).all():
-        mol.create_qm_cv(n_conformer=args.n_conformer)
+    mols = session.query(Molecule).filter_by(active_learning=True)
+    for mol in tqdm(mols, total=mols.count()):
+        fail_jobs = [job for job in mol.qm_cv if job.status == Status.FAILED]
+        mol.create_qm_cv(n_conformer=args.n_conformer + len(fail_jobs))
     session.commit()
 
 
 def build(args: MonitorArgs, simulator: GaussianSimulator):
-    for job in session.query(QM_CV).filter_by(status=Status.STARTED).limit(args.n_prepare):
+    jobs = session.query(QM_CV).filter_by(status=Status.STARTED).limit(args.n_prepare)
+    for job in tqdm(jobs, total=jobs.count()):
         job.commands = json.dumps(
             simulator.prepare(job.molecule.smiles, path=job.ms_dir, task='qm_cv',
                               tmp_dir=os.path.join(DIR_DATA, 'tmp', str(job.id)), seed=job.seed)
@@ -50,13 +54,17 @@ def run(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm):
 
 
 def analyze(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm):
-    for job in session.query(QM_CV).filter_by(status=Status.SUBMITED).limit(args.n_analyze):
-        if not job_manager.is_running(job.name):
+    print('Analyzing results of qm_cv')
+    job_manager.update_stored_jobs()
+    jobs_to_analyze = session.query(QM_CV).filter_by(status=Status.SUBMITED).limit(args.n_analyze)
+    for job in tqdm(jobs_to_analyze, total=jobs_to_analyze.count()):
+        if not job_manager.is_running(job.slurm_name):
             result = simulator.analyze(os.path.join(job.ms_dir, 'gaussian.log'))
-            if result is None:
+            if result is None or result == 'imaginary frequencies' or len(result['T']) == 0:
+                job.result = result
                 job.status = Status.FAILED
             else:
-                job.update_dict('result', result)
+                job.result = json.dumps(result)
                 job.status = Status.ANALYZED
             session.commit()
 

@@ -2,9 +2,6 @@
 # -*- coding: utf-8 -*-
 import os
 CWD = os.path.dirname(os.path.abspath(__file__))
-from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
-import re
-import json
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     sessionmaker,
@@ -20,6 +17,7 @@ from sqlalchemy import (
     Column, Integer, Float, Text, Boolean, String, ForeignKey, UniqueConstraint,
 )
 from ..aimstools.utils import get_T_list_from_range
+from .utils import *
 
 
 Base = declarative_base()
@@ -46,26 +44,6 @@ def add_or_query(row, keys: List[str]):
         return result
 
 
-def update_dict(obj, attr: str, p_dict: Dict):
-    content = getattr(obj, attr)
-    if content is None:
-        setattr(obj, attr, json.dumps(p_dict))
-    else:
-        d = json.loads(content)
-        d.update(p_dict)
-        setattr(obj, attr, json.dumps(d))
-
-
-def update_list(obj, attr: str, p_list: List):
-    content = getattr(obj, attr)
-    if content is None:
-        setattr(obj, attr, json.dumps(p_list))
-    else:
-        d = json.loads(content)
-        d.extend(p_list)
-        setattr(obj, attr, json.dumps(d))
-
-
 class Status:
     STARTED = 0  # create task.
     BUILD = 1
@@ -84,6 +62,7 @@ class Molecule(Base):
     id = Column(Integer, primary_key=True)
     smiles = Column(String(255), unique=True)
     active_learning = Column(Boolean, default=False)
+    fail = Column(Boolean, default=False)
     features = Column(Text)
     property_exp = Column(Text)
     property_ml = Column(Text)
@@ -121,12 +100,29 @@ class Molecule(Base):
             job.status = status
 
     # functions for qm_cv
+    @property
+    def status_qm_cv(self) -> List[int]:
+        return list(set([job.status for job in self.qm_cv]))
+
     def create_qm_cv(self, n_conformer: int = 1):
         for i in range(n_conformer):
             qm_cv = QM_CV(molecule_id=self.id, seed=i)
             add_or_query(qm_cv, ['molecule_id', 'seed'])
 
+    def reset_qm_cv(self, job_manager: Slurm = None):
+        for job in self.qm_cv:
+            job.delete(job_manager)
+        try:
+            shutil.rmtree(os.path.join(self.ms_dir, 'qm_cv'))
+        except:
+            pass
+    # functions for qm_cv
+
     # functions for md_npt
+    @property
+    def status_md_npt(self) -> List[int]:
+        return list(set([job.status for job in self.md_npt]))
+
     def create_md_npt(self, T_min: float, T_max: float, n_T: int, P_list: List[float]):
         T_list = get_T_list_from_range(self.tc * T_min, self.tc * T_max, n_point=n_T)
         for T in T_list:
@@ -134,18 +130,13 @@ class Molecule(Base):
                 md_npt = MD_NPT(molecule_id=self.id, T=T, P=P)
                 add_or_query(md_npt, ['molecule_id', 'T', 'P'])
 
-    @property
-    def status_md_npt(self) -> Union[int, List[int]]:
-        status = set([job.status for job in self.md_npt])
-        if len(status) == 1:
-            return self.md_npt[0].status
-        else:
-            if Status.STARTED in status or Status.BUILD in status:
-                self.set_status('md_npt', Status.FAILED)
-                return Status.FAILED
-            else:
-                return list(status)
-
+    def reset_md_npt(self, job_manager: Slurm = None):
+        for job in self.md_npt:
+            job.delete(job_manager)
+        try:
+            shutil.rmtree(os.path.join(self.ms_dir, 'md_npt'))
+        except:
+            pass
     # functions for md_npt
 
 
@@ -176,11 +167,23 @@ class QM_CV(Base):
     def name(self) -> str:
         return 'aims_qm_cv_%d' % self.molecule.id
 
+    @property
+    def slurm_name(self) -> Optional[str]:
+        sh_file = json.loads(self.sh_file)
+        if sh_file:
+            assert sh_file[-1].endswith('.sh')
+            return sh_file[-1].split('/')[-1][:-3]
+        else:
+            return None
+
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)
 
     def update_list(self, attr: str, p_list: List):
         update_list(self, attr, p_list)
+
+    def delete(self, job_manager: Slurm = None):
+        delete_job(job=self, session=session, job_manager=job_manager)
 
 
 class MD_NPT(Base):
@@ -238,6 +241,9 @@ class MD_NPT(Base):
 
     def update_list(self, attr: str, p_list: List):
         update_list(self, attr, p_list)
+
+    def delete(self, job_manager: Slurm = None):
+        delete_job(job=self, session=session, job_manager=job_manager)
 
 
 metadata.create_all(engine)

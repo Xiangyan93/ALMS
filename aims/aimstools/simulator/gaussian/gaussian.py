@@ -17,12 +17,14 @@ class GaussianSimulator:
         self.n_jobs = n_jobs
         self.memMB = memMB
 
-    def prepare(self, smiles: str, path: str, name: str = 'gaussian', task: Literal['qm_cv'] = 'qm_cv',
-              conformer_generator: Literal['openbabel'] = 'openbabel', tmp_dir: str = '.', seed: int = 0) -> List[str]:
-        mol3d = Mol3D(smiles, algorithm=conformer_generator, seed=seed)
+    def prepare(self, smiles: str, path: str, name: str = 'gaussian',
+                task: Literal['qm_cv'] = 'qm_cv',
+                conformer_generator: Literal['openbabel'] = 'openbabel',
+                tmp_dir: str = '.', seed: int = 0) -> List[str]:
+        mol3d = Mol3D(smiles, algorithm=conformer_generator, n_conformer=1, seed=seed)
         print('Build GAUSSIAN input file.')
         if task == 'qm_cv':
-            self._create_gjf_cv(mol3d, path=path, name=name, T_list=np.arange(100, 900, 100))
+            self._create_gjf_cv(mol3d, path=path, name=name, T_list=np.arange(100, 1400, 100))
             file = os.path.join(path, '%s.gjf' % name)
             return self.get_slurm_commands(file, tmp_dir)
         else:
@@ -45,7 +47,7 @@ class GaussianSimulator:
         if content.find('Error termination') > -1:
             return None
         if content.find('imaginary frequencies') > -1:
-            return None
+            return 'imaginary frequencies'
 
         result = {'EE': None, 'EE+ZPE': None, 'T': [], 'scale': [], 'cv': [], 'cv_corrected': [], 'FE': []}
         f = open(log)
@@ -99,7 +101,7 @@ class GaussianSimulator:
             if self.memMB is not None:
                 f.write('%%mem=%dMB\n' % self.memMB)
             f.write('%%chk=%(path)s/%(name)s.chk\n'
-                    '# opt freq=hindrot %(method)s %(basis)s scale=%(scale).4f temperature=%(T).2f\n'
+                    '# opt freq=hindrot pop=full %(method)s %(basis)s scale=%(scale).4f temperature=%(T).2f\n'
                     '\n'
                     'Title\n'
                     '\n'

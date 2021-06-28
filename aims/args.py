@@ -36,11 +36,7 @@ class SubmitArgs(Tap):
         return np.unique(smiles).tolist()
 
 
-class ActiveLearningArgs(Tap):
-    stop_uncertainty: float = 0.2
-    """Tolerance of unsupervised active learning, should be a number from 0 to 1."""
-    rerun: bool = False
-    """Rerun active learning from scratch."""
+class KernelArgs(Tap):
     n_jobs: int = 1
     """The cpu numbers used for parallel computing."""
 
@@ -105,6 +101,8 @@ class MonitorArgs(SoftwareArgs):
     """Number of temperatures for simultions."""
     P_list: List[float] = [1]
     """Pressures for simulations."""
+    stop_uncertainty: float = None
+    """Tolerance of unsupervised active learning, should be a number from 0 to 1."""
 
     @property
     def job_manager_(self):
@@ -132,71 +130,6 @@ class MonitorArgs(SoftwareArgs):
             self.n_hypercores = self.n_cores
 
 
-class DMPNNArgs(Tap):
-    no_cuda: bool = False
-    """Turn off cuda (i.e., use CPU instead of GPU)."""
-    gpu: int = None
-    """Which GPU to use."""
-    # Model arguments
-    atom_messages: bool = False
-    """Centers messages on atoms instead of on bonds."""
-    bias: bool = False
-    """Whether to add bias to linear layers."""
-    hidden_size: int = 300
-    """Dimensionality of hidden layers in MPN."""
-    depth: int = 3
-    """Number of message passing steps."""
-    dropout: float = 0.0
-    """Dropout probability."""
-    activation: Literal['ReLU', 'LeakyReLU', 'PReLU', 'tanh', 'SELU', 'ELU'] = 'ReLU'
-    """Activation function."""
-    undirected: bool = False
-    """Undirected edges (always sum the two relevant bond vectors)."""
-    aggregation: Literal['mean', 'sum', 'norm'] = 'mean'
-    """Aggregation scheme for atomic vectors into molecular vectors"""
-    aggregation_norm: int = 100
-    """For norm aggregation, number by which to divide summed up atomic 
-    features"""
-
-    @property
-    def device(self) -> torch.device:
-        """The :code:`torch.device` on which to load and process data and models."""
-        if not self.cuda:
-            return torch.device('cpu')
-
-        return torch.device('cuda', self.gpu)
-
-    @device.setter
-    def device(self, device: torch.device) -> None:
-        self.cuda = device.type == 'cuda'
-        self.gpu = device.index
-
-    @property
-    def cuda(self) -> bool:
-        """Whether to use CUDA (i.e., GPUs) or not."""
-        return not self.no_cuda and torch.cuda.is_available()
-
-    @cuda.setter
-    def cuda(self, cuda: bool) -> None:
-        self.no_cuda = not cuda
-
-    @property
-    def dataset_type(self):
-        return 'regression'
-
-    @property
-    def num_tasks(self):
-        return 1
-
-    @property
-    def max_data_size(self):
-        return None
-
-
-class TrainArgs(DMPNNArgs):
-    data_path: str = None
-    """Path to data CSV file."""
-    smiles_columns: str = None
-    """Column containing SMILES strings."""
-    target_columns: str = None
-    """Column containing target values."""
+class ExportArgs(Tap):
+    property: Literal['density', 'cp', 'hvap'] = None
+    """The property to export. None will output molecules list."""
