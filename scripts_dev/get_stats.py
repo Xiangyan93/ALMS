@@ -14,6 +14,10 @@ class Args(Tap):
 
 
 def main(args: Args):
+    mols = session.query(Molecule)
+    print('There are total %i molecules, %i have been selected through active learning.' %
+          (mols.count(), mols.filter_by(active_learning=True).count()))
+
     if args.task == 'qm_cv':
         jobs = session.query(QM_CV)
         for mol in session.query(Molecule).filter_by(active_learning=True):
