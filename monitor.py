@@ -15,6 +15,11 @@ from aims.ml.mgk.evaluator import ActiveLearner
 def active_learning(margs: MonitorArgs):
     if margs.stop_uncertainty is None:
         return
+    if margs.stop_uncertainty < 0.0:
+        mols_all = session.query(Molecule)
+        for mol in tqdm(mols_all.all(), total=mols_all.count()):
+            mol.active_learning = True
+        return
     args = ActiveLearningArgs()
     args.save_dir = 'data'
     args.n_jobs = margs.n_jobs
