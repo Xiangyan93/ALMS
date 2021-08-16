@@ -19,6 +19,7 @@ def active_learning(margs: MonitorArgs):
         mols_all = session.query(Molecule)
         for mol in tqdm(mols_all.all(), total=mols_all.count()):
             mol.active_learning = True
+        session.commit()
         return
     args = ActiveLearningArgs()
     args.save_dir = 'data'
