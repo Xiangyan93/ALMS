@@ -61,7 +61,7 @@ def analyze(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm)
         if not job_manager.is_running(job.slurm_name):
             result = simulator.analyze(os.path.join(job.ms_dir, 'gaussian.log'))
             if result is None or result == 'imaginary frequencies' or len(result['T']) == 0:
-                job.result = result
+                job.result = json.dumps(result)
                 job.status = Status.FAILED
             else:
                 job.result = json.dumps(result)
