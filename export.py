@@ -9,6 +9,11 @@ from aims.analysis import *
 
 
 def export(args: ExportArgs):
+    if args.use_all:
+        mols = session.query(Molecule)
+    else:
+        mols = session.query(Molecule).filter_by(active_learning=True)
+
     if args.property == 'cp':
         d = {
             'smiles': [],
@@ -20,7 +25,6 @@ def export(args: ExportArgs):
             'cp': [],
             'red_T': []
         }
-        mols = session.query(Molecule).filter_by(active_learning=True)
         for mol in tqdm(mols, total=mols.count()):
             results = get_cp(mol)
             if results is None:
@@ -44,7 +48,6 @@ def export(args: ExportArgs):
             'density': [],
             'red_T': []
         }
-        mols = session.query(Molecule).filter_by(active_learning=True)
         for mol in tqdm(mols, total=mols.count()):
             results = get_density(mol)
             if results is None:
@@ -65,7 +68,6 @@ def export(args: ExportArgs):
             'hvap': [],
             'red_T': []
         }
-        mols = session.query(Molecule).filter_by(active_learning=True)
         for mol in tqdm(mols, total=mols.count()):
             results = get_hvap(mol)
             if results is None:
