@@ -11,7 +11,9 @@ from aims.database.models import *
 def main():
     mols = session.query(Molecule)
     for mol in tqdm(mols, total=mols.count()):
-        mol.active_learning = False
+        mol.active = False
+        mol.inactive = False
+
     session.commit()
 
 

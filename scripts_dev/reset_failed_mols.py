@@ -16,7 +16,7 @@ class Args(Tap):
 
 def main(args: Args):
     if args.task == 'md_npt':
-        mols = session.query(Molecule).filter_by(active_learning=True)
+        mols = session.query(Molecule).filter_by(active=True)
     else:
         return
 

@@ -12,7 +12,7 @@ def export(args: ExportArgs):
     if args.use_all:
         mols = session.query(Molecule)
     else:
-        mols = session.query(Molecule).filter_by(active_learning=True)
+        mols = session.query(Molecule).filter_by(active=True)
 
     if args.property == 'cp':
         d = {
@@ -82,7 +82,7 @@ def export(args: ExportArgs):
         pd.DataFrame(d).to_csv('hvap.csv', index=False)
     elif args.property is None:
         smiles = [mol.smiles for mol in session.query(Molecule)]
-        al = [mol.active_learning for mol in session.query(Molecule)]
+        al = [mol.active for mol in session.query(Molecule)]
         pd.DataFrame({'smiles': smiles, 'active_learning': al}).to_csv('molecules.csv', index=False)
 
 

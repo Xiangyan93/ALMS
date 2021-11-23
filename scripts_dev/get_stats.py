@@ -15,12 +15,15 @@ class Args(Tap):
 
 def main(args: Args):
     mols = session.query(Molecule)
-    print('There are total %i molecules, %i have been selected through active learning.' %
-          (mols.count(), mols.filter_by(active_learning=True).count()))
+    print('There are total %i molecules.' % mols.count())
+    print('%i molecules have been selected through active learning.' % mols.filter_by(active=True).count())
+    print('%i molecules have been rejected through active learning.' % mols.filter_by(inactive=True).count())
+    print('%i molecules haven\'t been considered in active learning.' %
+          mols.filter_by(active=False, inactive=False).count())
 
     if args.task == 'qm_cv':
         jobs = session.query(QM_CV)
-        for mol in session.query(Molecule).filter_by(active_learning=True):
+        for mol in session.query(Molecule).filter_by(active=True):
             if Status.ANALYZED not in mol.status_qm_cv and Status.FAILED in mol.status_qm_cv:
                 print(f'{mol.id} failed.')
     elif args.task == 'md_npt':

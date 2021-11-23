@@ -53,7 +53,7 @@ def get_cp(mol: Molecule) -> Optional[Tuple[List[float], List[float], List[float
 
 
 def update_fail_mols():
-    for mol in session.query(Molecule).filter_by(active_learning=True):
+    for mol in session.query(Molecule).filter_by(active=True):
         # at least one QM job is success.
         if Status.ANALYZED not in mol.status_qm_cv:
             continue
@@ -68,6 +68,6 @@ def update_fail_mols():
             continue
 
         if get_cp(mol) is None:
-            mol.active_learning = False
+            mol.active = False
             mol.fail = True
         session.commit()

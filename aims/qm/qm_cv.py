@@ -22,7 +22,7 @@ def create(args: MonitorArgs):
     create_dir(os.path.join(DIR_DATA, 'slurm'))
     create_dir(os.path.join(DIR_DATA, 'tmp'))
     # crete jobs.
-    mols = session.query(Molecule).filter_by(active_learning=True)
+    mols = session.query(Molecule).filter_by(active=True)
     for mol in tqdm(mols, total=mols.count()):
         fail_jobs = [job for job in mol.qm_cv if job.status == Status.FAILED]
         mol.create_qm_cv(n_conformer=args.n_conformer + len(fail_jobs))
