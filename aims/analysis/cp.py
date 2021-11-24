@@ -69,5 +69,6 @@ def update_fail_mols():
 
         if get_cp(mol) is None:
             mol.active = False
+            mol.inactive = True
             mol.fail = True
         session.commit()
