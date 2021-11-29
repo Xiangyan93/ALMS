@@ -11,7 +11,7 @@ from aims.database.models import *
 def main():
     mols = session.query(Molecule)
     for mol in tqdm(mols, total=mols.count()):
-        if mol.inactive == True:
+        if mol.inactive == True and mol.fail == False:
             mol.inactive = False
     session.commit()
 
