@@ -110,6 +110,8 @@ class MonitorArgs(SoftwareArgs):
     A subset of the sample pool is randomly selected for active learning. 
     None means all samples are selected.
     """
+    seed: int = 0
+    """Random seed."""
 
     @property
     def job_manager_(self):
