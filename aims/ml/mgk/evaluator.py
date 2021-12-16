@@ -336,7 +336,9 @@ class ActiveLearner:
                 print('***\tinactive size = %i\t***' % len(self.dataset_inactive))
                 print('**\tStart train\t**')
                 self.train()
-                if (self.args.evaluate_stride is not None and self.current_size % self.args.evaluate_stride == 0) or \
+                if self.args.evaluate_stride == 0:
+                    pass
+                elif (self.args.evaluate_stride is not None and self.current_size % self.args.evaluate_stride == 0) or \
                         len(self.dataset_pool) == 0:
                     print('\n**\tstart evaluate\t**\n')
                     self.evaluate()

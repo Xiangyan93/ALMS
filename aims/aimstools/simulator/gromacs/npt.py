@@ -179,7 +179,7 @@ class Npt(GmxSimulation):
 
             ### Check structure freezing using Density
             if density_series.min() / 1000 < 0.1:  # g/mL
-                if time_sim > cutoff_time:
+                if time_sim > 2000.0:
                     info_dict['failed'] = True
                     info_dict['reason'] = 'vaporize'
                     return info_dict
@@ -193,7 +193,7 @@ class Npt(GmxSimulation):
             ### Check structure freezing using Diffusion of COM of molecules. Only use last 400 ps data
             diffusion, _ = self.gmx.diffusion('npt.xtc', 'npt.tpr', mol=True, begin=time_sim - 400)
             if diffusion < 1E-8:  # cm^2/s
-                if time_sim > cutoff_time:
+                if time_sim > 2000.0:
                     info_dict['failed'] = True
                     info_dict['reason'] = 'freeze'
                     return info_dict
