@@ -8,6 +8,7 @@ import math
 import json
 from tqdm import tqdm
 from multiprocessing import Pool
+from sqlalchemy.sql import or_
 from ..args import MonitorArgs
 from ..database import *
 from ..aimstools.simulator.gromacs import Npt
@@ -26,10 +27,7 @@ def create(args: MonitorArgs):
     create_dir(os.path.join(DIR_DATA, 'slurm'))
     create_dir(os.path.join(DIR_DATA, 'tmp'))
     # crete jobs.
-    mols = session.query(Molecule).filter_by(active=True)
-    for mol in tqdm(mols, total=mols.count()):
-        mol.create_md_npt(T_min=args.T_range[0], T_max=args.T_range[1], n_T=args.n_Temp, P_list=args.P_list)
-    mols = session.query(Molecule).filter_by(testset=True)
+    mols = session.query(Molecule).filter(or_(Molecule.active==True, Molecule.testset==True))
     for mol in tqdm(mols, total=mols.count()):
         mol.create_md_npt(T_min=args.T_range[0], T_max=args.T_range[1], n_T=args.n_Temp, P_list=args.P_list)
     session.commit()
@@ -197,7 +195,7 @@ def _submit_jobs(jobs_to_run: List, simulator: Npt, job_manager: Slurm, n_gmx_mu
 
 def _get_n_mols(n_mol: int, eq_status: int = None, in_status: int = None) -> List[Molecule]:
     mols = []
-    for mol in session.query(Molecule).filter_by(active=True):
+    for mol in session.query(Molecule).filter(or_(Molecule.active==True, Molecule.testset==True)):
         if eq_status is not None:
             if len(mol.status_md_npt) == 1 and mol.status_md_npt[0] == eq_status:
                 mols.append(mol)

@@ -5,6 +5,7 @@ CWD = os.path.dirname(os.path.abspath(__file__))
 DIR_DATA = os.path.join(CWD, '..', '..', 'data')
 import json
 from tqdm import tqdm
+from sqlalchemy.sql import or_
 from ..args import MonitorArgs
 from ..database import *
 from ..aimstools.simulator.gaussian import GaussianSimulator
@@ -22,11 +23,7 @@ def create(args: MonitorArgs):
     create_dir(os.path.join(DIR_DATA, 'slurm'))
     create_dir(os.path.join(DIR_DATA, 'tmp'))
     # crete jobs.
-    mols = session.query(Molecule).filter_by(active=True)
-    for mol in tqdm(mols, total=mols.count()):
-        fail_jobs = [job for job in mol.qm_cv if job.status == Status.FAILED]
-        mol.create_qm_cv(n_conformer=args.n_conformer + len(fail_jobs))
-    mols = session.query(Molecule).filter_by(testset=True)
+    mols = session.query(Molecule).filter(or_(Molecule.active==True, Molecule.testset==True))
     for mol in tqdm(mols, total=mols.count()):
         fail_jobs = [job for job in mol.qm_cv if job.status == Status.FAILED]
         mol.create_qm_cv(n_conformer=args.n_conformer + len(fail_jobs))
