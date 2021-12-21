@@ -29,6 +29,9 @@ def create(args: MonitorArgs):
     mols = session.query(Molecule).filter_by(active=True)
     for mol in tqdm(mols, total=mols.count()):
         mol.create_md_npt(T_min=args.T_range[0], T_max=args.T_range[1], n_T=args.n_Temp, P_list=args.P_list)
+    mols = session.query(Molecule).filter_by(testset=True)
+    for mol in tqdm(mols, total=mols.count()):
+        mol.create_md_npt(T_min=args.T_range[0], T_max=args.T_range[1], n_T=args.n_Temp, P_list=args.P_list)
     session.commit()
 
 

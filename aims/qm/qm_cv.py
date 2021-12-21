@@ -26,6 +26,10 @@ def create(args: MonitorArgs):
     for mol in tqdm(mols, total=mols.count()):
         fail_jobs = [job for job in mol.qm_cv if job.status == Status.FAILED]
         mol.create_qm_cv(n_conformer=args.n_conformer + len(fail_jobs))
+    mols = session.query(Molecule).filter_by(testset=True)
+    for mol in tqdm(mols, total=mols.count()):
+        fail_jobs = [job for job in mol.qm_cv if job.status == Status.FAILED]
+        mol.create_qm_cv(n_conformer=args.n_conformer + len(fail_jobs))
     session.commit()
 
 

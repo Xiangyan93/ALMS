@@ -64,6 +64,8 @@ class Molecule(Base):
     active = Column(Boolean, default=False)
     inactive = Column(Boolean, default=False)
     fail = Column(Boolean, default=False)
+    testset = Column(Boolean, default=False)
+    tag = Column(Text)
     features = Column(Text)
     property_exp = Column(Text)
     property_ml = Column(Text)

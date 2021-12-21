@@ -41,7 +41,7 @@ def active_learning(margs: MonitorArgs):
     args.pool_size = margs.pool_size
     args.stop_size = 100000
     args.stop_uncertainty = [margs.stop_uncertainty]
-    args.evaluate_stride = 100000
+    args.evaluate_stride = 0
     args.seed = margs.seed
 
     mols_all = session.query(Molecule).filter_by(fail=False)
