@@ -7,23 +7,21 @@ sys.path.append(os.path.join(CWD, '..'))
 from tap import Tap
 from tqdm import tqdm
 from aims.database.models import *
+from sqlalchemy.sql import func
 
 
 class Args(Tap):
-    task: Literal['md_npt'] = 'md_npt'
-    """The task of molecular simulation."""
+    number: int = 0
+    """The number of molecules selected as test set."""
+    rule: Literal['random'] = 'random'
+    """The rule to select test set molecules."""
 
 
 def main(args: Args):
-    if args.task == 'md_npt':
-        mols = session.query(Molecule).filter_by(active=True)
-    else:
-        return
-
+    mols = session.query(Molecule).filter_by(active=False).order_by(func.random()).limit(args.number)
     for mol in tqdm(mols, total=mols.count()):
-        if len(mol.status_md_npt) == 1 and mol.status_md_npt[0] == Status.ANALYZED:
-            continue
-        mol.reset_md_npt()
+        mol.testset = True
+
     session.commit()
 
 

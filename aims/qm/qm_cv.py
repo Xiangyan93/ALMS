@@ -5,6 +5,7 @@ CWD = os.path.dirname(os.path.abspath(__file__))
 DIR_DATA = os.path.join(CWD, '..', '..', 'data')
 import json
 from tqdm import tqdm
+from sqlalchemy.sql import or_
 from ..args import MonitorArgs
 from ..database import *
 from ..aimstools.simulator.gaussian import GaussianSimulator
@@ -22,7 +23,7 @@ def create(args: MonitorArgs):
     create_dir(os.path.join(DIR_DATA, 'slurm'))
     create_dir(os.path.join(DIR_DATA, 'tmp'))
     # crete jobs.
-    mols = session.query(Molecule).filter_by(active_learning=True)
+    mols = session.query(Molecule).filter(or_(Molecule.active==True, Molecule.testset==True))
     for mol in tqdm(mols, total=mols.count()):
         fail_jobs = [job for job in mol.qm_cv if job.status == Status.FAILED]
         mol.create_qm_cv(n_conformer=args.n_conformer + len(fail_jobs))
@@ -61,7 +62,7 @@ def analyze(args: MonitorArgs, simulator: GaussianSimulator, job_manager: Slurm)
         if not job_manager.is_running(job.slurm_name):
             result = simulator.analyze(os.path.join(job.ms_dir, 'gaussian.log'))
             if result is None or result == 'imaginary frequencies' or len(result['T']) == 0:
-                job.result = result
+                job.result = json.dumps(result)
                 job.status = Status.FAILED
             else:
                 job.result = json.dumps(result)

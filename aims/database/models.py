@@ -61,8 +61,11 @@ class Molecule(Base):
     __tablename__ = 'molecule'
     id = Column(Integer, primary_key=True)
     smiles = Column(String(255), unique=True)
-    active_learning = Column(Boolean, default=False)
+    active = Column(Boolean, default=False)
+    inactive = Column(Boolean, default=False)
     fail = Column(Boolean, default=False)
+    testset = Column(Boolean, default=False)
+    tag = Column(Text)
     features = Column(Text)
     property_exp = Column(Text)
     property_ml = Column(Text)

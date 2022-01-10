@@ -41,6 +41,8 @@ class GaussianSimulator:
 
     @staticmethod
     def analyze(log: str) -> Optional[Dict]:
+        if not os.path.exists(log):
+            return None
         content = open(log).read()
         if content.find('Normal termination') == -1:
             return None

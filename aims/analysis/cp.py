@@ -15,7 +15,8 @@ def get_cp_intra(T_list_in: List[float],
 
 
 def get_cp(mol: Molecule) -> Optional[Tuple[List[float], List[float], List[float], np.ndarray, np.ndarray, np.ndarray]]:
-    jobs = [job for job in mol.md_npt if job.status == Status.ANALYZED]
+    jobs = [job for job in mol.md_npt
+            if job.status == Status.ANALYZED and not np.isnan(json.loads(job.result)['einter'][0])]
     if len(jobs) < 5:
         return None
     n_mols = [json.loads(job.result)['n_mols'] for job in jobs]
@@ -52,7 +53,7 @@ def get_cp(mol: Molecule) -> Optional[Tuple[List[float], List[float], List[float
 
 
 def update_fail_mols():
-    for mol in session.query(Molecule).filter_by(active_learning=True):
+    for mol in session.query(Molecule).filter_by(active=True):
         # at least one QM job is success.
         if Status.ANALYZED not in mol.status_qm_cv:
             continue
@@ -67,6 +68,7 @@ def update_fail_mols():
             continue
 
         if get_cp(mol) is None:
-            mol.active_learning = False
+            mol.active = False
+            mol.inactive = True
             mol.fail = True
         session.commit()

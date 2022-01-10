@@ -101,8 +101,17 @@ class MonitorArgs(SoftwareArgs):
     """Number of temperatures for simultions."""
     P_list: List[float] = [1]
     """Pressures for simulations."""
+    graph_kernel_type: Literal['graph', 'preCalc'] = None
+    """The type of kernel to use."""
     stop_uncertainty: float = None
     """Tolerance of unsupervised active learning, should be a number from 0 to 1."""
+    pool_size: int = None
+    """
+    A subset of the sample pool is randomly selected for active learning. 
+    None means all samples are selected.
+    """
+    seed: int = 0
+    """Random seed."""
 
     @property
     def job_manager_(self):
@@ -133,3 +142,5 @@ class MonitorArgs(SoftwareArgs):
 class ExportArgs(Tap):
     property: Literal['density', 'cp', 'hvap'] = None
     """The property to export. None will output molecules list."""
+    use_all: bool = False
+    """Use all data."""
