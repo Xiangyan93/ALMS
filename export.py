@@ -11,6 +11,8 @@ from aims.analysis import *
 def export(args: ExportArgs):
     if args.use_all:
         mols = session.query(Molecule)
+    elif args.use_test:
+        mols = session.query(Molecule).filter_by(testset=True)
     else:
         mols = session.query(Molecule).filter_by(active=True)
 

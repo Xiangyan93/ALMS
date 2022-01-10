@@ -144,3 +144,5 @@ class ExportArgs(Tap):
     """The property to export. None will output molecules list."""
     use_all: bool = False
     """Use all data."""
+    use_test: bool = False
+    """Export test set data."""
