@@ -36,7 +36,7 @@ collect results.
    ```
    python3 submit.py --smiles CCCC CCCCC CCCCCC --files data/test.csv --features_generator rdkit_2d_normalized --heavy_atoms 4 19
    ```
-2. Calculate the kernel matrix and save in data/kernel.pkl
+2. Calculate the kernel matrix and save in data/kernel.pkl. Must run in GPU.
    ```
    python3 calc_kernel.py --n_jobs 6
    ```
