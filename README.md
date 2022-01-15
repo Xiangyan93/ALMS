@@ -32,8 +32,9 @@ collect results.
 
 ## Usages
 1. Submit molecules to the database.
+   - Type SMILES of molecules.
    ```
-   python3 submit.py --smiles CCCC CCCCC CCCCCC --files data/smiles.csv --features_generator rdkit_2d_normalized --heavy_atoms 4 19
+   python3 submit.py --smiles CCCC CCCCC CCCCCC --files data/test.csv --features_generator rdkit_2d_normalized --heavy_atoms 4 19
    ```
 2. Calculate the kernel matrix and save in data/kernel.pkl
    ```
@@ -41,17 +42,20 @@ collect results.
    ```
 3. High-throughput QM calculation.
    ```
-   python3 monitor.py --task qm_cv --partition cpu --n_cores 8 --n_jobs 8  --gaussian_exe $GAUSSIAN --n_conformer 1 --stop_uncertainty 0.3
+   python3 monitor.py --task qm_cv --partition cpu --n_cores 8 --n_jobs 8  --gaussian_exe $GAUSSIAN --n_conformer 1 --stop_uncertainty 0.3 --graph_kernel_type preCalc
    ```
 4. High-throughput MD simulation.
    ```
-   python3 monitor.py --task md_npt --partition gtx --n_cores 16 --n_hypercores 32 --n_gpu 2 --n_jobs 8 --packmol_exe $PACKMOL --dff_root $DFF --gmx_exe_analysis gmx_serial --gmx_exe_mdrun gmx_gpu --stop_uncertainty 0.3
+   python3 monitor.py --task md_npt --partition gtx --n_cores 16 --n_hypercores 32 --n_gpu 2 --n_jobs 8 --packmol_exe $PACKMOL --dff_root $DFF --gmx_exe_analysis gmx_serial --gmx_exe_mdrun gmx_gpu --stop_uncertainty 0.3 --graph_kernel_type preCalc
    ```
 5. Export simulation data.
    ```
    python3 export.py --property cp
    ```
-6. Train D-MPNN
+6. Train and predict using D-MPNN.
+   It is suggested to learn how to use D-MPNN at https://github.com/chemprop/chemprop. 
+   Add temperature as model input by adding ```--features_columns T```.
    ```
-   python3 train.py --data_path cp.csv --dataset_type regression --save_dir ml-models/cp-T-sum-al0.5 --split_type random --split_sizes 1.0 0.0 0.0 --metric mae --num_fold 1 --ensemble_size 1 --epochs 100 --save_preds --smiles_columns smiles --features_columns T --target_columns cp --features_generator rdkit_2d --num_workers 6 --aggregation sum
+   python3 train.py --data_path cp.csv --dataset_type regression --save_dir ml-models/cp-dmpnn --split_type random --split_sizes 1.0 0.0 0.0 --metric mae --num_fold 1 --ensemble_size 1 --epochs 100 --save_preds --smiles_columns smiles --features_columns T --target_columns cp --features_generator rdkit_2d --num_workers 6 --aggregation sum
+   python3 predict.py --data_path cp_test_set.csv --preds_path cp_preds.csv --checkpoint_dir ml-models/cp-dmpnn --features_generator rdkit_2d --features_columns T
    ```

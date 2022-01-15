@@ -75,16 +75,18 @@ def active_learning(margs: MonitorArgs):
     # active learning
     al = ActiveLearner(args, dataset, dataset_pool, kernel_config, kernel_config)
     al.run()
-    smiles = [s.split(',')[0] for s in al.dataset.X_repr.ravel()]
-    for mol in tqdm(mols_all.all(), total=mols_all.count()):
-        if mol.smiles in smiles:
-            mol.active = True
-            mol.inactive = False
-    smiles = [s.split(',')[0] for s in al.dataset_pool.X_repr.ravel()]
-    for mol in tqdm(mols_all.all(), total=mols_all.count()):
-        if mol.smiles in smiles:
-            mol.active = False
-            mol.inactive = True
+    if len(al.dataset) != 0:
+        smiles = [s.split(',')[0] for s in al.dataset.X_repr.ravel()]
+        for mol in tqdm(mols_all.all(), total=mols_all.count()):
+            if mol.smiles in smiles:
+                mol.active = True
+                mol.inactive = False
+    if len(al.dataset_pool) != 0:
+        smiles = [s.split(',')[0] for s in al.dataset_pool.X_repr.ravel()]
+        for mol in tqdm(mols_all.all(), total=mols_all.count()):
+            if mol.smiles in smiles:
+                mol.active = False
+                mol.inactive = True
     session.commit()
 
 
@@ -108,15 +110,15 @@ def monitor(args: MonitorArgs):
         print('Step2: create.\n\n')
         create(args)
         print('\nStep3: build.\n')
-        build(args, simulator)
+        #build(args, simulator)
         print('\nStep4: run.\n')
-        run(args, simulator, job_manager)
+        #run(args, simulator, job_manager)
         print('\nStep5: analyze.\n')
-        analyze(args, simulator, job_manager)
+        #analyze(args, simulator, job_manager)
         print('\nStep6: extend.\n')
-        extend(args, simulator, job_manager)
+        #extend(args, simulator, job_manager)
         print('\nStep7: update failed mols.\n')
-        update_fail_mols()
+        #update_fail_mols()
         print('Sleep %d minutes...' % args.t_sleep)
         time.sleep(args.t_sleep * 60)
 
