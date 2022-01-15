@@ -52,11 +52,10 @@ collect results.
    ```
    python3 export.py --property cp
    ```
-6. Train D-MPNN
+6. Train and predict using D-MPNN.
+   It is suggested to learn how to use D-MPNN at https://github.com/chemprop/chemprop. 
+   Add temperature as model input by adding ```--features_columns T```.
    ```
    python3 train.py --data_path cp.csv --dataset_type regression --save_dir ml-models/cp-dmpnn --split_type random --split_sizes 1.0 0.0 0.0 --metric mae --num_fold 1 --ensemble_size 1 --epochs 100 --save_preds --smiles_columns smiles --features_columns T --target_columns cp --features_generator rdkit_2d --num_workers 6 --aggregation sum
-   ```
-7. Predict D-MPNN
-   ```
-   python3 train.py --data_path cp_test_set.csv --preds_path cp_preds.csv --checkpoint_dir ml-models/cp-dmpnn --features_generator rdkit_2d --features_columns T
+   python3 predict.py --data_path cp_test_set.csv --preds_path cp_preds.csv --checkpoint_dir ml-models/cp-dmpnn --features_generator rdkit_2d --features_columns T
    ```
