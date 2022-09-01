@@ -3,11 +3,11 @@
 import os
 import pickle
 import pandas as pd
-from aims.args import KernelArgs as KArgs
-from aims.database import *
-from aims.ml.mgk.args import KernelArgs
-from aims.ml.mgk.data.data import Dataset
-from aims.ml.mgk.kernels.utils import get_kernel_config
+from alms.args import KernelArgs as KArgs
+from alms.database import *
+from alms.ml.mgk.args import KernelArgs
+from alms.ml.mgk.data.data import Dataset
+from alms.ml.mgk.kernels.utils import get_kernel_config
 
 
 def calc_kernel(kargs: KArgs):

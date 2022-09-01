@@ -6,7 +6,7 @@ import sys
 sys.path.append(os.path.join(CWD, '..'))
 from tap import Tap
 from tqdm import tqdm
-from aims.database.models import *
+from alms.database.models import *
 from sqlalchemy.sql import func
 
 

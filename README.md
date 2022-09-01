@@ -1,14 +1,14 @@
-# AIMS (Artifical Intelligence Molecular Simulation)
-AIMS is a program designed to generate large-scale molecular property data sets using machine learning and computational chemistry techniques. 
+# ALMS (Active Learning Molecular Simulation)
+ALMS is a program designed to generate large-scale molecular property data sets using machine learning and computational chemistry techniques. 
 
 It contains three main parts.
 - Active Learning ([Gaussian Process Regression, Marginalized Graph Kernel](https://github.com/xiangyan93/Chem-Graph-Kernel-Machine)).
 - High-throughput Quamtum Chemistry Calculation (GAUSSIAN) and classical Force-Field Molecular Dynamics Simulation (GROMACS).
 - Machine Learning Prediction ([Direct Message Passing Neural Network](https://github.com/chemprop/chemprop)).
 
-The workflow of AIMS:
+The workflow of ALMS:
 <div align="center">
-<p><img src="data/picture/AIMS.png" width="1000"/></p>
+<p><img src="data/picture/ALMS.png" width="1000"/></p>
 </div> 
 
 The workflow of high-throughput calculation engine:
@@ -25,7 +25,7 @@ The workflow of high-throughput calculation engine:
  
 ```
 conda env create -f environment.yml
-conda activate aims
+conda activate alms
 ```
 - "monitor.py" need to run on a cluster with SLURM job manager to automatically submit jobs and
 collect results.

@@ -5,12 +5,12 @@ import os
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
-from aims.database import *
-from aims.args import MonitorArgs
-from aims.ml.mgk.args import ActiveLearningArgs
-from aims.ml.mgk.kernels.utils import get_kernel_config
-from aims.ml.mgk.data.data import Dataset
-from aims.ml.mgk.evaluator import ActiveLearner
+from alms.database import *
+from alms.args import MonitorArgs
+from alms.ml.mgk.args import ActiveLearningArgs
+from alms.ml.mgk.kernels.utils import get_kernel_config
+from alms.ml.mgk.data.data import Dataset
+from alms.ml.mgk.evaluator import ActiveLearner
 
 
 def active_learning(margs: MonitorArgs):
@@ -92,12 +92,12 @@ def active_learning(margs: MonitorArgs):
 
 def monitor(args: MonitorArgs):
     if args.task == 'qm_cv':
-        from aims.qm.qm_cv import get_GaussianSimulator, create, build, run, analyze, extend
-        from aims.analysis.cp import update_fail_mols
+        from alms.qm.qm_cv import get_GaussianSimulator, create, build, run, analyze, extend
+        from alms.analysis.cp import update_fail_mols
         simulator = get_GaussianSimulator(args)
     elif args.task == 'md_npt':
-        from aims.md.md_npt import get_NptSimulator, create, build, run, analyze, extend
-        from aims.analysis.cp import update_fail_mols
+        from alms.md.md_npt import get_NptSimulator, create, build, run, analyze, extend
+        from alms.analysis.cp import update_fail_mols
         simulator = get_NptSimulator(args)
     else:
         return

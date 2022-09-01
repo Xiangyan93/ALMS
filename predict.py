@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-from aims.ml.chemprop.train import chemprop_predict
+from alms.ml.chemprop.train import chemprop_predict
 
 
 if __name__ == '__main__':

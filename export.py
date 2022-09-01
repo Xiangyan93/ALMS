@@ -3,9 +3,9 @@
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
-from aims.args import ExportArgs
-from aims.database.models import *
-from aims.analysis import *
+from alms.args import ExportArgs
+from alms.database.models import *
+from alms.analysis import *
 
 
 def export(args: ExportArgs):

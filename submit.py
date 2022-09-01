@@ -4,12 +4,12 @@ from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
 from tqdm import tqdm
 import json
 import numpy as np
-from aims.args import SubmitArgs
-from aims.database import *
-from aims.aimstools.rdkit.smiles import *
-from aims.ml.chemprop.features.features_generators import get_features
-from aims.ml.chemprop.args import PredictArgs
-from aims.ml.chemprop.train import make_predictions
+from alms.args import SubmitArgs
+from alms.database import *
+from alms.aimstools.rdkit.smiles import *
+from alms.ml.chemprop.features.features_generators import get_features
+from alms.ml.chemprop.args import PredictArgs
+from alms.ml.chemprop.train import make_predictions
 
 
 def mol_filter(smiles: str,
