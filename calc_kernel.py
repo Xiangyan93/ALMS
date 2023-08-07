@@ -20,7 +20,7 @@ def calc_kernel(kargs: KArgs):
     args.graph_hyperparameters = ['data/tMGR.json']
 
     # get dataset.
-    mols = session.query(Molecule)
+    mols = session.query(SingleMolecule)
     df = pd.DataFrame({'smiles': [mol.smiles for mol in mols],
                        'target': [0.] * mols.count()})
     dataset = Dataset.from_df(args, df)

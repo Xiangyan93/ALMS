@@ -18,7 +18,7 @@ class Args(Tap):
 
 
 def main(args: Args):
-    mols = session.query(Molecule).filter_by(active=False).order_by(func.random()).limit(args.number)
+    mols = session.query(SingleMolecule).filter_by(active=False).order_by(func.random()).limit(args.number)
     for mol in tqdm(mols, total=mols.count()):
         mol.testset = True
 

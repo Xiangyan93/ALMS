@@ -5,8 +5,9 @@ from ..database.models import *
 from alms.aimstools.utils import polyfit, is_monotonic, get_V
 
 
-def get_hvap(mol: Molecule, plot_fail: bool = False) -> Optional[Tuple[List[float], List[float], List[float]]]:
-    jobs = [job for job in mol.md_npt
+def get_hvap(mol: SingleMoleculeTask, plot_fail: bool = False) -> \
+        Optional[Tuple[List[float], List[float], List[float]]]:
+    jobs = [job for job in mol.md_npt_jobs
             if job.status == Status.ANALYZED and not np.isnan(json.loads(job.result)['einter'][0])]
     if len(jobs) < 5:
         return None

@@ -9,7 +9,7 @@ from alms.database.models import *
 
 
 def main():
-    mols = session.query(Molecule)
+    mols = session.query(SingleMolecule)
     for mol in tqdm(mols, total=mols.count()):
         if mol.inactive == True and mol.fail == False:
             mol.inactive = False

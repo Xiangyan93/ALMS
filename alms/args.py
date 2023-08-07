@@ -4,62 +4,64 @@ import os
 CWD = os.path.dirname(os.path.abspath(__file__))
 from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
 from tap import Tap
-import torch
 import numpy as np
 import pandas as pd
-from .aimstools.jobmanager import Slurm
+from functools import cached_property
+from mgktools.features_mol.features_generators import FeaturesGenerator
+from simutools.jobmanager import Slurm
+from simutools.simulator.gaussian.gaussian import GaussianSimulator
+from simutools.builder.packmol import Packmol
+from simutools.simulator.gromacs.gromacs import GROMACS
 
 
 class SubmitArgs(Tap):
-    smiles: List[str] = None
-    """Submit a list of molecules in SMILES."""
-    files: List[str] = None
-    """Submit a list of SMILES in a file."""
-    features_generator: List[str] = None
-    """Method(s) of generating additional molfeatures."""
+    files: List[str]
+    """Submit a list of input files in CSV format. It must contain smiles, optional for name."""
     heavy_atoms: Tuple[int, int] = None
     """Only molecules with heavy atoms in the interval will be submitted."""
+    tag: str = None
+    """tag for the submitted molecules."""
+    excluded_smarts: List[str] = None
 
+
+class TaskArgs(Tap):
+    task: Literal['qm_cv', 'md_npt', 'md_binding-fe']
+    """The task of molecular simulation"""
     @property
-    def smiles_list(self) -> List[str]:
-        smiles = []
-        if self.smiles is not None:
-            smiles.extend(self.smiles)
-        if self.files is not None:
-            for file in self.files:
-                df = pd.read_csv(file)
-                for s in ['smiles', 'SMILES']:
-                    if s in df:
-                        smiles.extend(df[s].unique().tolist())
-                else:
-                  smiles.extend(df.iloc[:, 0].unique().tolist())
-        return np.unique(smiles).tolist()
+    def task_nmol(self) -> int:
+        if self.task in ['qm_cv', 'md_npt']:
+            return 1
+        else:
+            return 2
 
 
-class KernelArgs(Tap):
+class ActiveLearningArgs(Tap):
+    strategy: Literal['all', 'explorative', 'exploitive'] = 'all'
+    """Active learning strategy"""
     n_jobs: int = 1
     """The cpu numbers used for parallel computing."""
 
 
 class SoftwareArgs(Tap):
     # QM softwares
-    gaussian_exe: str = None
+    gaussian: str = 'g16'
     """Executable file of GAUSSIAN"""
     # MD softwares
-    packmol_exe: str = None
+    packmol: str = 'packmol'
     """Executable file of packmol"""
-    dff_root: str = None
-    """Directory of Direct Force Field"""
-    gmx_exe_analysis: str = None
-    """"""
-    gmx_exe_mdrun: str = None
-    """"""
+    gmx: str = 'gmx'
+    """Executable file of GROMACS"""
+
+    @cached_property
+    def Gaussian(self) -> GaussianSimulator:
+        return GaussianSimulator(exe=self.gaussian)
+
+    @cached_property
+    def Packmol(self) -> Packmol:
+        return Packmol(exe=self.packmol)
 
 
-class MonitorArgs(SoftwareArgs):
-    task: Literal['qm_cv', 'md_npt']
-    """The task of molecular simulation"""
-    # job manager args.
+class JobManagerArgs(Tap):
     job_manager: Literal['slurm'] = 'slurm'
     """Job manager of your cluster."""
     n_jobs: int = 8
@@ -75,9 +77,16 @@ class MonitorArgs(SoftwareArgs):
     n_gpu: int = 0
     """The number of GPU used in each slurm job."""
     mem: int = None
-    """The memory used in each slurm job (MB)."""
+    """The memory used in each slurm job (GB)."""
     walltime: int = 48
     """Walltime of slurm jobs (hour)."""
+
+    @cached_property
+    def JobManager(self) -> Slurm:
+        return Slurm()
+
+
+class MonitorArgs(TaskArgs, ActiveLearningArgs, SoftwareArgs, JobManagerArgs, Tap):
     # controller args.
     n_prepare: int = 10
     """"""
@@ -101,7 +110,7 @@ class MonitorArgs(SoftwareArgs):
     """Number of temperatures for simultions."""
     P_list: List[float] = [1]
     """Pressures for simulations."""
-    graph_kernel_type: Literal['graph', 'preCalc'] = None
+    graph_kernel_type: Literal['graph', 'pre-computed'] = None
     """The type of kernel to use."""
     stop_uncertainty: float = None
     """Tolerance of unsupervised active learning, should be a number from 0 to 1."""
@@ -113,24 +122,18 @@ class MonitorArgs(SoftwareArgs):
     seed: int = 0
     """Random seed."""
 
-    @property
-    def job_manager_(self):
-        return Slurm(partition=self.partition, n_nodes=self.n_nodes, n_cores=self.n_cores, n_gpu=self.n_gpu,
-                     walltime=self.walltime)
-
     def process_args(self) -> None:
         ms_dir = os.path.join(CWD, '..', 'data', 'ms')
         if not os.path.exists(ms_dir):
             os.mkdir(ms_dir)
 
         if self.task == 'qm_cv':
-            assert self.gaussian_exe is not None
+            assert self.gaussian is not None
             assert self.n_gpu == 0
         elif self.task == 'md_npt':
-            assert self.packmol_exe is not None
+            assert self.packmol is not None
             assert self.dff_root is not None
-            assert self.gmx_exe_analysis is not None
-            assert self.gmx_exe_mdrun is not None
+            assert self.gmx is not None
 
         if self.n_gmx_multi == 1:
             assert self.n_gpu == 0

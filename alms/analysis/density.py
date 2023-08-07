@@ -5,8 +5,9 @@ from ..database.models import *
 from alms.aimstools.utils import polyfit, is_monotonic, get_V
 
 
-def get_density(mol: Molecule, plot_fail: bool = False) -> Optional[Tuple[List[float], List[float], List[float]]]:
-    jobs = [job for job in mol.md_npt if job.status == Status.ANALYZED]
+def get_density(mol: SingleMoleculeTask, plot_fail: bool = False) -> \
+        Optional[Tuple[List[float], List[float], List[float]]]:
+    jobs = [job for job in mol.md_npt_jobs if job.status == Status.ANALYZED]
     if len(jobs) < 5:
         return None
     n_mols = [json.loads(job.result)['n_mols'] for job in jobs]

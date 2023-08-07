@@ -3,7 +3,7 @@
 from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
 import json
 import shutil
-from ..aimstools.jobmanager import Slurm
+from simutools.jobmanager import Slurm
 
 
 def update_dict(obj, attr: str, p_dict: Dict):

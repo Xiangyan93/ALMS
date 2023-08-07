@@ -14,8 +14,8 @@ def get_cp_intra(T_list_in: List[float],
     return np_polyval(T_list_out, coefs)
 
 
-def get_cp(mol: Molecule) -> Optional[Tuple[List[float], List[float], List[float], np.ndarray, np.ndarray, np.ndarray]]:
-    jobs = [job for job in mol.md_npt
+def get_cp(mol: SingleMoleculeTask) -> Optional[Tuple[List[float], List[float], List[float], np.ndarray, np.ndarray, np.ndarray]]:
+    jobs = [job for job in mol.md_npt_jobs
             if job.status == Status.ANALYZED and not np.isnan(json.loads(job.result)['einter'][0])]
     if len(jobs) < 5:
         return None
@@ -39,7 +39,7 @@ def get_cp(mol: Molecule) -> Optional[Tuple[List[float], List[float], List[float
     else:
         cp_inter = _[1] * 1000  # J/mol.K
     # intramolecular cp.
-    jobs = [job for job in mol.qm_cv if job.status == Status.ANALYZED]
+    jobs = [job for job in mol.qm_cv_jobs if job.status == Status.ANALYZED]
     if len(jobs) == 0:
         return None
     T_list_in = json.loads(jobs[0].result)['T']
@@ -53,11 +53,11 @@ def get_cp(mol: Molecule) -> Optional[Tuple[List[float], List[float], List[float
 
 
 def update_fail_mols():
-    for mol in session.query(Molecule).filter_by(active=True):
+    for mol in session.query(SingleMoleculeTask).filter_by(active=True):
         # at least one QM job is success.
-        if Status.ANALYZED not in mol.status_qm_cv:
+        if Status.ANALYZED not in mol.status('qm_cv'):
             continue
-        status = mol.status_md_npt
+        status = mol.status('md_npt')
         # MD jobs must be all ANALYZED or FAILED.
         if len(status) > 2 or len(status) == 0:
             continue

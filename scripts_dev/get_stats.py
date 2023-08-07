@@ -14,7 +14,7 @@ class Args(Tap):
 
 
 def main(args: Args):
-    mols = session.query(Molecule)
+    mols = session.query(SingleMolecule)
     print('There are total %i molecules.' % mols.count())
     print('%i molecules have been selected through active learning.' % mols.filter_by(active=True).count())
     print('%i molecules have been rejected through active learning.' % mols.filter_by(inactive=True).count())
@@ -23,7 +23,7 @@ def main(args: Args):
 
     if args.task == 'qm_cv':
         jobs = session.query(QM_CV)
-        for mol in session.query(Molecule).filter_by(active=True):
+        for mol in session.query(SingleMolecule).filter_by(active=True):
             if Status.ANALYZED not in mol.status_qm_cv and Status.FAILED in mol.status_qm_cv:
                 print(f'{mol.id} failed.')
     elif args.task == 'md_npt':
