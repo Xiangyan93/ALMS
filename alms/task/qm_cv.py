@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-from abc import ABC
 
 CWD = os.path.dirname(os.path.abspath(__file__))
 DIR_DATA = os.path.join(CWD, '..', '..', 'data')
@@ -19,6 +18,10 @@ class TaskCV(TaskAL):
     def __init__(self, Gaussian: GaussianSimulator):
         self.simulator = Gaussian
 
+    def active_learning(self, margs: MonitorArgs):
+        self.create_single_molecule_tasks()
+        super().active_learning(margs)
+
     def create(self, args: MonitorArgs):
         create_dir(os.path.join(DIR_DATA, 'ms'))
         create_dir(os.path.join(DIR_DATA, 'slurm'))
@@ -27,14 +30,14 @@ class TaskCV(TaskAL):
             or_(SingleMoleculeTask.active == True, SingleMoleculeTask.testset == True))
         for mol in tqdm(mols, total=mols.count()):
             fail_jobs = [job for job in mol.qm_cv if job.status == Status.FAILED]
-            mol.create_qm_cv(n_conformer=args.n_conformer + len(fail_jobs))
+            mol.create_jobs(task='qm_cv', n_conformer=args.n_conformer + len(fail_jobs))
         session.commit()
 
     def build(self, args: MonitorArgs):
         jobs = session.query(QM_CV).filter_by(status=Status.STARTED).limit(args.n_prepare)
         for job in tqdm(jobs, total=jobs.count()):
             job.commands = json.dumps(
-                self.simulator.prepare(job.molecule.smiles, path=job.ms_dir, task='qm_cv',
+                self.simulator.prepare(job.single_molecule_task.molecule.smiles, path=job.ms_dir, task='qm_cv',
                                        tmp_dir=os.path.join(DIR_DATA, 'tmp', str(job.id)), seed=job.seed)
             )
             job.status = Status.PREPARED

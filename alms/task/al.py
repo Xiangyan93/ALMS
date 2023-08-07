@@ -90,3 +90,10 @@ class TaskAL(BaseTask):
                     mol.inactive = True
         session.commit()
         """
+
+    def create_single_molecule_tasks(self):
+        mols = session.query(Molecule)
+        for mol in tqdm(mols, total=mols.count()):
+            task = SingleMoleculeTask(molecule_id=mol.id)
+            add_or_query(task, ['molecule_id'])
+        session.commit()

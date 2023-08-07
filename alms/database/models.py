@@ -135,20 +135,19 @@ class SingleMoleculeTask(Base):
             return list(set([job.status for job in self.md_npt]))
         else:
             raise ValueError
-    # functions for qm_cv
 
     def create_jobs(self, task: Literal['qm_cv', 'md_npt'], n_conformer: int = 1,
                     T_min: float = None, T_max: float = None, n_T: int = None, P_list: List[float] = None):
         if task == 'qm_cv':
             for i in range(n_conformer):
-                qm_cv = QM_CV(molecule_id=self.id, seed=i)
-                add_or_query(qm_cv, ['molecule_id', 'seed'])
+                qm_cv = QM_CV(single_molecule_task_id=self.id, seed=i)
+                add_or_query(qm_cv, ['single_molecule_task_id', 'seed'])
         elif task == 'md_npt':
             T_list = get_T_list_from_range(self.tc * T_min, self.tc * T_max, n_point=n_T)
             for T in T_list:
                 for P in P_list:
-                    md_npt = MD_NPT(molecule_id=self.id, T=T, P=P)
-                    add_or_query(md_npt, ['molecule_id', 'T', 'P'])
+                    md_npt = MD_NPT(single_molecule_task_id=self.id, T=T, P=P)
+                    add_or_query(md_npt, ['single_molecule_task_id', 'T', 'P'])
 
     def reset_jobs(self, task: Literal['qm_cv', 'md_npt'], job_manager: Slurm = None):
         jobs = self.qm_cv if task == 'qm_cv' else self.md_npt
