@@ -1,0 +1,8 @@
+Fold 0
+Model 0 best validation mae = inf on epoch 0
+Model 0 test mae = nan
+Ensemble test mae = nan
+1-fold cross validation
+	Seed 0 ==> test mae = nan
+Overall test mae = nan +/- nan
+Elapsed time = 0:06:52
