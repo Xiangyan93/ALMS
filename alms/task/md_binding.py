@@ -10,7 +10,7 @@ from rdkit import Chem
 import physical_validation as pv
 from panedr.panedr import edr_to_df
 from simutools.forcefields.amber import AMBER
-from simutools.simulator.program import Packmol, GROMACS
+from simutools.simulator.program import Packmol, GROMACS, PLUMED
 from simutools.simulator.func import build
 from simutools.utils.series import is_converged, block_average
 from .base import BaseTask
@@ -19,66 +19,86 @@ from ..database.models import *
 from ..analysis.cp import update_fail_mols
 
 
-class TaskNPT(BaseTask):
-    def __init__(self, job_manager: Slurm, force_field: Union[AMBER], simulator: Union[GROMACS], packmol: Packmol):
+class TaskBINDING(BaseTask):
+    def __init__(self, job_manager: Slurm, force_field: Union[AMBER], simulator: Union[GROMACS],
+                 plumed: PLUMED, packmol: Packmol):
         super().__init__(job_manager=job_manager)
         self.ff = force_field
         self.simulator = simulator
         self.packmol = packmol
+        self.plumed = plumed
 
     def active_learning(self, margs: MonitorArgs):
-        self.create_single_molecule_tasks()
+        self.create_double_molecule_tasks()
         super().active_learning(margs)
 
     def create(self, args: MonitorArgs):
-        tasks = session.query(SingleMoleculeTask).filter(SingleMoleculeTask.active == True)
+        tasks = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
         for task in tqdm(tasks, total=tasks.count()):
-            task.create_jobs(task='md_npt', T_min=args.T_range[0], T_max=args.T_range[1],
-                             n_T=args.n_Temp, P_list=args.P_list)
+            task.create_jobs(task='md_binding', n_repeats=5, T_list=[298.], P_list=[1.])
         session.commit()
 
-    def build(self, args: MonitorArgs):
+    def build(self, args: MonitorArgs, length: float = 5., n_water: int = 3000, upper_bound: float = 2.):
         cwd = os.getcwd()
         # pick args.n_prepare tasks.
         tasks = []
-        for task in session.query(SingleMoleculeTask).filter(SingleMoleculeTask.active == True):
-            if len(task.status('md_npt')) == 1 and task.status('md_npt')[0] == Status.STARTED:
+        for task in session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True):
+            if len(task.status('md_binding')) == 1 and task.status('md_binding')[0] == Status.STARTED:
                 tasks.append(task)
             if len(tasks) == args.n_prepare:
                 break
         # checkout force field parameters for the molecules.
         for task in tqdm(tasks, total=len(tasks)):
-            task.molecule.checkout(force_field=self.ff, simulator=self.simulator)
+            task.molecule_1.checkout(force_field=self.ff, simulator=self.simulator)
+            task.molecule_2.checkout(force_field=self.ff, simulator=self.simulator)
         # Job.status: STARTED -> BUILD
-        # # build initial simulation box and checkout the force field parameters.
         for task in tqdm(tasks, total=len(tasks)):
-            mol = task.molecule
-            # create build dir. All simulations start from the same initial structure.
-            path = os.path.join(task.ms_dir, 'md_npt', 'build')
-            create_missing_folders(path)
-            os.chdir(path)
-            n_molecules = int(3000 / mol.GetNumAtoms)
-            V = 10 / 6.022 * mol.molwt / mol.estimate_density  # nm^3
-            length = V ** (1 / 3)  # assume cubic box
-            self.packmol.build_uniform(pdb_files=[f'{mol.ms_dir}/{mol.name}_ob.pdb'],
-                                       n_mol_list=[n_molecules],
-                                       output='initial.pdb', box_size=[length] * 3)
-            self.simulator.convert_pdb(pdb='initial.pdb', tag_out='initial', box_size=[length] * 3)
-            self.simulator.modify_top_mol_numbers(top=f'{mol.ms_dir}/topol.top', outtop='topol.top',
-                                                  mol_name=mol.resname, n_mol=n_molecules)
-            for job in task.md_npt:
+            mol1 = task.molecule_1
+            mol2 = task.molecule_2
+            for job in task.md_binding:
+                os.chdir(job.ms_dir)
+                # checkout tip3p water
+                self.ff.checkout(smiles_list=['O'], n_mol_list=[1], name_list=['tip3p'],
+                                 res_name_list=['SOL'], simulator=self.simulator)
+                # create simulation box using packmol
+                if task.self_task:
+                    self.packmol.build_uniform(pdb_files=[f'{mol1.ms_dir}/{mol1.name}.pdb',
+                                                          f'tip3p.pdb'],
+                                               n_mol_list=[2, n_water],
+                                               output='initial.pdb', box_size=[length] * 3, seed=job.seed)
+                    self.simulator.merge_top([f'{mol1.ms_dir}/checkout', 'checkout'])
+                    self.simulator.modify_top_mol_numbers(top='topol.top', outtop='topol.top',
+                                                          mol_name=mol1.resname, n_mol=2)
+                    self.simulator.modify_top_mol_numbers(top='topol.top', outtop='topol.top',
+                                                          mol_name='SOL', n_mol=n_water)
+                else:
+                    self.packmol.build_uniform(pdb_files=[f'{mol1.ms_dir}/{mol1.name}.pdb',
+                                                          f'{mol2.ms_dir}/{mol2.name}.pdb',
+                                                          f'tip3p.pdb'],
+                                               n_mol_list=[1, 1, n_water],
+                                               output='initial.pdb', box_size=[length] * 3, seed=job.seed)
+                    self.simulator.merge_top([f'{mol1.ms_dir}/checkout', f'{mol2.ms_dir}/checkout', 'checkout'])
+                    self.simulator.modify_top_mol_numbers(top='topol.top', outtop='topol.top',
+                                                          mol_name='SOL', n_mol=n_water)
+                self.simulator.convert_pdb(pdb='initial.pdb', tag_out='initial', box_size=[length] * 3)
                 job.status = Status.BUILD
             session.commit()
         # Job.status: BUILD -> PREPARED
         # # prepares files for the jobs. All commands are saved and then submitted to SLURM.
-        jobs = session.query(MD_NPT).filter_by(status=Status.BUILD)
+        jobs = session.query(MD_BINDING).filter_by(status=Status.BUILD)
         for job in tqdm(jobs, total=jobs.count()):
             commands = []
             if isinstance(self.simulator, GROMACS):
                 os.chdir(job.ms_dir)
-                shutil.copy('../build/initial.gro', '.')
-                shutil.copy('../build/topol.top', '.')
                 gmx = self.simulator
+                # PLUMED
+                natoms1 = job.double_molecule_task.molecule_1.GetNumAtoms
+                natoms2 = job.double_molecule_task.molecule_2.GetNumAtoms
+                self.plumed.generate_dat_from_template(template='bimolecule.dat', output='plumed.dat',
+                                                       group1=f'1-{natoms1}',
+                                                       group2=f'{natoms1 + 1}-{natoms1 + natoms2}',
+                                                       upper_bound=upper_bound,
+                                                       barrier=50)
                 # energy minimization
                 gmx.generate_mdp_from_template(template='t_em.mdp', mdp_out='em.mdp')
                 commands += [gmx.grompp(mdp='em.mdp', gro='initial.gro', top='topol.top', tpr='em.tpr',
@@ -86,29 +106,22 @@ class TaskNPT(BaseTask):
                              gmx.mdrun(tpr='em.tpr', ntomp=args.ntasks, exe=False)]
                 # NVT annealing from 0 to TA_annealing to target T with Langevin thermostat
                 gmx.generate_mdp_from_template(template='t_nvt_anneal.mdp', mdp_out='anneal.mdp',
-                                               T=job.T, T_annealing=800, nsteps=int(1E5), nstxtcout=0)
+                                               T=job.T, T_annealing=800, nsteps=200000, nstxtcout=0)
                 commands += [gmx.grompp(mdp='anneal.mdp', gro='em.gro', top='topol.top', tpr='anneal.tpr', exe=False),
                              gmx.mdrun(tpr='anneal.tpr', ntomp=args.ntasks, exe=False)]
                 # NPT equilibrium with Langevin thermostat and Berendsen barostat
                 gmx.generate_mdp_from_template(template='t_npt.mdp', mdp_out='eq.mdp', T=job.T, P=job.P,
-                                               nsteps=int(4E5), nstxtcout=0, tcoupl='langevin', pcoupl='berendsen')
+                                               nsteps=1000000, nstxtcout=0, tcoupl='langevin', pcoupl='berendsen')
                 commands += [gmx.grompp(mdp='eq.mdp', gro='anneal.gro', top='topol.top', tpr='eq.tpr', exe=False),
                              gmx.mdrun(tpr='eq.tpr', ntomp=args.ntasks, exe=False)]
                 # NPT production with Langevin thermostat and Parrinello-Rahman barostat
                 gmx.generate_mdp_from_template(template='t_npt.mdp', mdp_out='npt.mdp', T=job.T, P=job.P,
-                                               dt=0.002, nsteps=int(5E5), nstenergy=100,
-                                               nstxout=int(5E4), nstvout=int(5E4),
-                                               nstxtcout=1000, restart=True,
+                                               dt=0.002, nsteps=15000000, nstenergy=50000,
+                                               nstxout=500000, nstvout=500000,
+                                               nstxtcout=50000, restart=True,
                                                tcoupl='langevin', pcoupl='parrinello-rahman')
                 commands += [gmx.grompp(mdp='npt.mdp', gro='eq.gro', top='topol.top', tpr='npt.tpr', exe=False),
-                             gmx.mdrun(tpr='npt.tpr', ntomp=args.ntasks, exe=False)]
-                # Rerun enthalpy of vaporization
-                commands.append('export GMX_MAXCONSTRWARN=-1')
-
-                gmx.generate_top_for_hvap(top='topol.top', top_out='topol-hvap.top')
-                gmx.generate_mdp_from_template(template='t_npt.mdp', mdp_out='hvap.mdp', nstxtcout=0, restart=True)
-                commands += [gmx.grompp(mdp='hvap.mdp', gro='eq.gro', top='topol-hvap.top', tpr='hvap.tpr', exe=False),
-                             gmx.mdrun(tpr='hvap.tpr', ntomp=args.ntasks, rerun='npt.xtc', exe=False)]
+                             gmx.mdrun(tpr='npt.tpr', ntomp=args.ntasks, plumed='plumed.dat', exe=False)]
             else:
                 raise ValueError
             job.commands_mdrun = json.dumps(commands)

@@ -9,12 +9,11 @@ import pandas as pd
 from functools import cached_property
 from mgktools.features_mol.features_generators import FeaturesGenerator
 from simutools.jobmanager import Slurm
-from simutools.simulator.gaussian.gaussian import GaussianSimulator
-from simutools.builder.packmol import Packmol
-from simutools.simulator.gromacs.gromacs import GROMACS
+from simutools.simulator.program import Gaussian, Packmol, GROMACS, PLUMED
+from simutools.forcefields.amber import AMBER
 
 
-class SubmitArgs(Tap):
+class   SubmitArgs(Tap):
     files: List[str]
     """Submit a list of input files in CSV format. It must contain smiles, optional for name."""
     heavy_atoms: Tuple[int, int] = None
@@ -25,7 +24,7 @@ class SubmitArgs(Tap):
 
 
 class TaskArgs(Tap):
-    task: Literal['qm_cv', 'md_npt', 'md_binding-fe']
+    task: Literal['qm_cv', 'md_npt', 'md_binding']
     """The task of molecular simulation"""
     @property
     def task_nmol(self) -> int:
@@ -51,29 +50,47 @@ class SoftwareArgs(Tap):
     """Executable file of packmol"""
     gmx: str = 'gmx'
     """Executable file of GROMACS"""
+    force_field: str = 'antechamber'
+    """The force field used for MD simulation."""
+    plumed: str = 'plumed'
+    """Executable file of PLUMED"""
 
     @cached_property
-    def Gaussian(self) -> GaussianSimulator:
-        return GaussianSimulator(exe=self.gaussian)
+    def Gaussian(self) -> Gaussian:
+        return Gaussian(exe=self.gaussian)
 
     @cached_property
     def Packmol(self) -> Packmol:
         return Packmol(exe=self.packmol)
 
+    @cached_property
+    def ForceField(self) -> Union[AMBER]:
+        if self.force_field.endswith('antechamber'):
+            return AMBER(exe=self.force_field)
+        else:
+            raise ValueError(f'Unsupported force field: {self.force_field}')
+
+    @cached_property
+    def Simulator(self) -> Union[GROMACS]:
+        if self.gmx is not None:
+            return GROMACS(exe=self.gmx)
+        else:
+            raise ValueError(f'Unsupported MD simulation program: {self.gmx}')
+
+    @cached_property
+    def Plumed(self) -> PLUMED:
+        return PLUMED(exe=self.plumed)
+
 
 class JobManagerArgs(Tap):
     job_manager: Literal['slurm'] = 'slurm'
     """Job manager of your cluster."""
-    n_jobs: int = 8
-    """The number of CPU cores used in the monitor."""
     partition: str
-    """"""
+    """The partition for jobs."""
     n_nodes: int = 1
     """The number of CPU nodes used in each slurm job."""
-    n_cores: int = 8
+    ntasks: int = 8
     """The number of CPU cores used in each slurm job."""
-    n_hypercores: int = None
-    """The number of hyperthreading used in each slurm job."""
     n_gpu: int = 0
     """The number of GPU used in each slurm job."""
     mem: int = None
@@ -87,6 +104,8 @@ class JobManagerArgs(Tap):
 
 
 class MonitorArgs(TaskArgs, ActiveLearningArgs, SoftwareArgs, JobManagerArgs, Tap):
+    n_jobs: int = 8
+    """The number of CPU cores used in the monitor."""
     # controller args.
     n_prepare: int = 10
     """"""
@@ -96,14 +115,8 @@ class MonitorArgs(TaskArgs, ActiveLearningArgs, SoftwareArgs, JobManagerArgs, Ta
     """"""
     t_sleep: int = 10
     """Sleep time for each iteration (mins). """
-    # QM args
-    conformer_generator: Literal['openbabel'] = 'openbabel'
-    """The algorithm to generate 3D coordinates from SMILES."""
     n_conformer: int = 1
     """The number of conformers, this is only valid for QM calculations."""
-    # GMX args
-    n_gmx_multi: int = 1
-    """The number of gmx jobs in each slurm job."""
     T_range: List[float] = [0.4, 0.9]
     """Reduced temperature range for simulations."""
     n_Temp: int = 8
@@ -123,23 +136,7 @@ class MonitorArgs(TaskArgs, ActiveLearningArgs, SoftwareArgs, JobManagerArgs, Ta
     """Random seed."""
 
     def process_args(self) -> None:
-        ms_dir = os.path.join(CWD, '..', 'data', 'ms')
-        if not os.path.exists(ms_dir):
-            os.mkdir(ms_dir)
-
-        if self.task == 'qm_cv':
-            assert self.gaussian is not None
-            assert self.n_gpu == 0
-        elif self.task == 'md_npt':
-            assert self.packmol is not None
-            assert self.dff_root is not None
-            assert self.gmx is not None
-
-        if self.n_gmx_multi == 1:
-            assert self.n_gpu == 0
-
-        if self.n_hypercores is None:
-            self.n_hypercores = self.n_cores
+        pass
 
 
 class ExportArgs(Tap):

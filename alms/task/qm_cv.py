@@ -1,36 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
-
-CWD = os.path.dirname(os.path.abspath(__file__))
-DIR_DATA = os.path.join(CWD, '..', '..', 'data')
+import math
+from multiprocessing import Pool
 from tqdm import tqdm
 from sqlalchemy.sql import or_
-from simutools.simulator.gaussian.gaussian import GaussianSimulator
-from .al import TaskAL
+from simutools.simulator.program import Gaussian
+from .base import BaseTask
 from ..args import MonitorArgs
 from ..database.models import *
-from ..aimstools.utils import create_dir
 from ..analysis.cp import update_fail_mols
 
 
-class TaskCV(TaskAL):
-    def __init__(self, Gaussian: GaussianSimulator):
-        self.simulator = Gaussian
+class TaskCV(BaseTask):
+    def __init__(self, job_manager: Slurm, simulator: Gaussian):
+        super().__init__(job_manager=job_manager)
+        self.simulator = simulator
 
     def active_learning(self, margs: MonitorArgs):
         self.create_single_molecule_tasks()
         super().active_learning(margs)
 
     def create(self, args: MonitorArgs):
-        create_dir(os.path.join(DIR_DATA, 'ms'))
-        create_dir(os.path.join(DIR_DATA, 'slurm'))
-        create_dir(os.path.join(DIR_DATA, 'tmp'))
-        mols = session.query(SingleMoleculeTask).filter(
-            or_(SingleMoleculeTask.active == True, SingleMoleculeTask.testset == True))
-        for mol in tqdm(mols, total=mols.count()):
-            fail_jobs = [job for job in mol.qm_cv if job.status == Status.FAILED]
-            mol.create_jobs(task='qm_cv', n_conformer=args.n_conformer + len(fail_jobs))
+        tasks = session.query(SingleMoleculeTask).filter(SingleMoleculeTask.active == True)
+        for task in tqdm(tasks, total=tasks.count()):
+            fail_jobs = [job for job in task.qm_cv if job.status == Status.FAILED]
+            task.create_jobs(task='qm_cv', n_conformer=args.n_conformer + len(fail_jobs))
         session.commit()
 
     def build(self, args: MonitorArgs):
@@ -38,42 +32,33 @@ class TaskCV(TaskAL):
         for job in tqdm(jobs, total=jobs.count()):
             job.commands = json.dumps(
                 self.simulator.prepare(job.single_molecule_task.molecule.smiles, path=job.ms_dir, task='qm_cv',
-                                       tmp_dir=os.path.join(DIR_DATA, 'tmp', str(job.id)), seed=job.seed)
+                                       tmp_dir=os.path.join(job.ms_dir, '../../../../../tmp', str(job.id)),
+                                       seed=job.seed)
             )
             job.status = Status.PREPARED
             session.commit()
 
     def run(self, args: MonitorArgs):
-        n_submit = args.n_run - args.JobManager.n_current_jobs
+        n_submit = args.n_run - self.job_manager.n_current_jobs
         if n_submit > 0:
-            for job in session.query(QM_CV).filter_by(status=Status.PREPARED).limit(n_submit):
-                sh = args.JobManager.generate_sh(
-                    name=job.name,
-                    path=job.ms_dir,
-                    commands=json.loads(job.commands),
-                    partition=args.partition,
-                    ntasks=args.n_cores,
-
-                )
-                args.JobManager.submit(sh)
-                job.update_list('sh_file', [sh])
-                job.status = Status.SUBMITED
-                session.commit()
+            jobs_to_submit = session.query(QM_CV).filter_by(status=Status.PREPARED).limit(n_submit)
+            self.submit_jobs(jobs_to_submit=jobs_to_submit)
 
     def analyze(self, args: MonitorArgs):
         print('Analyzing results of qm_cv')
-        args.JobManager.update_stored_jobs()
-        jobs_to_analyze = session.query(QM_CV).filter_by(status=Status.SUBMITED).limit(args.n_analyze)
-        for job in tqdm(jobs_to_analyze, total=jobs_to_analyze.count()):
-            if not args.JobManager.is_running(job.slurm_name):
-                result = self.simulator.analyze(os.path.join(job.ms_dir, 'gaussian.log'))
-                if result is None or result == 'imaginary frequencies' or len(result['T']) == 0:
-                    job.result = json.dumps(result)
-                    job.status = Status.FAILED
-                else:
-                    job.result = json.dumps(result)
-                    job.status = Status.ANALYZED
-                session.commit()
+        jobs_to_analyze = self.get_jobs_to_analyze(QM_CV, n_analyze=args.n_analyze)
+        results = self.analyze_multiprocess(self.analyze_single_job, jobs_to_analyze, args.n_jobs)
+        for i, job in enumerate(jobs_to_analyze):
+            result = results[i]
+            job.result = json.dumps(result)
+            if result is None or result == 'imaginary frequencies' or len(result['T']) == 0:
+                job.status = Status.FAILED
+            else:
+                job.status = Status.ANALYZED
+            session.commit()
+
+    def analyze_single_job(self, job_dir: str):
+        return self.simulator.analyze(os.path.join(job_dir, 'gaussian.log'))
 
     def extend(self, args: MonitorArgs):
         pass
