@@ -149,8 +149,7 @@ class BaseTask(ABCTask):
         n_analyze = int(math.ceil(len(jobs_to_analyze) / n_jobs))
         for i in tqdm(range(n_analyze), total=n_analyze):
             jobs = jobs_to_analyze[i * n_jobs:(i + 1) * n_jobs]
-            jobs_dir = [job.ms_dir for job in jobs]
             with Pool(n_jobs) as p:
-                result = p.map(analyze_function, jobs_dir)
+                result = p.map(analyze_function, jobs)
             results += result
         return results
