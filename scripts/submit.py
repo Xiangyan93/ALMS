@@ -35,7 +35,7 @@ def predict(target_property: str):
         smiles.append([mol.smiles])
     args = PredictArgs()
     args.test_path = 'none'
-    args.preds_path = '../data/tmp'
+    args.preds_path = f'../data/tmp/{target_property}.csv'
     args.checkpoint_dir = '../ml-models/%s' % target_property
     args.features_generator = ['rdkit_2d_normalized']
     args.no_features_scaling = True
