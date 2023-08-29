@@ -10,7 +10,7 @@ from simutools.utils.utils import create_folder, create_missing_folders
 from simutools.forcefields.base import BaseForceField
 from simutools.simulator.program import BaseMDProgram
 from simutools.simulator.mol3d import Mol3D
-from ..aimstools.utils import get_T_list_from_range
+from alms.utils import get_T_list_from_range
 from .utils import *
 
 CWD = os.path.dirname(os.path.abspath(__file__))

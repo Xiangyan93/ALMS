@@ -110,7 +110,6 @@ def monitor(args: MonitorArgs):
         task.create(args)
         print('\nStep3: build.\n')
         task.build(args)
-        """
         print('\nStep4: run.\n')
         task.run(args)
         print('\nStep5: analyze.\n')
@@ -119,7 +118,6 @@ def monitor(args: MonitorArgs):
         task.extend(args)
         print('\nStep7: update failed mols.\n')
         task.update_fail_tasks()
-        """
         print('Sleep %d minutes...' % args.t_sleep)
         time.sleep(args.t_sleep * 60)
 
