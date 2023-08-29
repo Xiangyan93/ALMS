@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import numpy as np
+from simutools.utils.series import is_monotonic, get_V
 from ..database.models import *
-from alms.aimstools.utils import polyfit, is_monotonic, get_V
 
 
 def get_hvap(mol: SingleMoleculeTask, plot_fail: bool = False) -> \

@@ -3,8 +3,9 @@
 import numpy as np
 import openbabel.pybel as pybel
 from numpy.polynomial.polynomial import polyval as np_polyval
+from simutools.utils.fitting import polyfit
+from simutools.utils.series import is_monotonic, get_V_dVdT
 from ..database.models import *
-from alms.aimstools.utils import polyfit, is_monotonic, get_V_dVdT
 
 
 def get_cp_intra(T_list_in: List[float],
