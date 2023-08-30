@@ -9,7 +9,7 @@ from alms.database.models import *
 
 
 class Args(Tap):
-    task: Literal['qm_cv', 'md_npt']
+    task: Literal['qm_cv', 'md_npt', 'md_binding']
     """The task of molecular simulation."""
 
 
@@ -18,6 +18,8 @@ def main(args: Args):
         jobs = session.query(QM_CV)
     elif args.task == 'md_npt':
         jobs = session.query(MD_NPT)
+    elif args.task == 'md_binding':
+        jobs = session.query(MD_BINDING)
     else:
         return
 
