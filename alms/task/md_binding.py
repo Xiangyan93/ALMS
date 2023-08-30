@@ -153,6 +153,8 @@ class TaskBINDING(BaseTask):
     def analyze(self, args: MonitorArgs):
         print('Analyzing results of md_npt')
         jobs_to_analyze = self.get_jobs_to_analyze(MD_BINDING, n_analyze=args.n_analyze)
+        if len(jobs_to_analyze) == 0:
+            return
         results = self.analyze_multiprocess(self.analyze_single_job, jobs_to_analyze, args.n_jobs)
         for i, job in enumerate(jobs_to_analyze):
             result = results[i]
@@ -165,7 +167,7 @@ class TaskBINDING(BaseTask):
                 job.status = Status.ANALYZED
             session.commit()
 
-    def analyze_single_job(self, job: MD_BINDING, check_converge: bool = True, cutoff_time: int = 7777):
+    def analyze_single_job(self, job, check_converge: bool = True, cutoff_time: int = 7777):
         cwd = os.getcwd()
         os.chdir(job.ms_dir)
         if isinstance(self.simulator, GROMACS):
