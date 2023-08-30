@@ -66,11 +66,12 @@ class TaskBINDING(BaseTask):
                     pdb_files = [f'{mol1.ms_dir}/{mol1.resname}.pdb', 'tip3p.pdb']
                     n_mol_list = [2, n_water]
                     mol_names = [mol1.resname, 'SOL']
+                    top_dirs = [f'{mol1.ms_dir}/checkout', 'checkout']
                 else:
                     pdb_files = [f'{mol1.ms_dir}/{mol1.resname}.pdb', f'{mol2.ms_dir}/{mol2.resname}.pdb', 'tip3p.pdb']
                     n_mol_list = [1, 1, n_water]
                     mol_names = [mol1.resname, mol2.resname, 'SOL']
-                top_dirs = [f'{mol1.ms_dir}/checkout', 'checkout']
+                    top_dirs = [f'{mol1.ms_dir}/checkout', f'{mol2.ms_dir}/checkout', 'checkout']
                 charges = mol1.formal_charge + mol2.formal_charge
                 if charges > 0:
                     self.ff.checkout(smiles_list=['[Cl-]'], n_mol_list=[1], name_list=['chloride'],

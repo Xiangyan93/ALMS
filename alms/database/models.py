@@ -85,7 +85,7 @@ class Molecule(Base):
     def checkout(self, force_field: AMBER, simulator: Union[GROMACS]):
         cwd = os.getcwd()
         os.chdir(self.ms_dir)
-        if not os.path.exists(f'{self.name}_ob.mol2'):
+        if not os.path.exists(f'{self.resname}_ob.mol2'):
             force_field.checkout(smiles_list=[self.smiles], n_mol_list=[1], name_list=[self.resname],
                                  res_name_list=[self.resname], simulator=simulator)
         simulator.fix_charge('checkout.top')
