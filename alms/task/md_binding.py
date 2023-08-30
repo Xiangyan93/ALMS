@@ -6,6 +6,7 @@ from tqdm import tqdm
 from multiprocessing import Pool
 import numpy as np
 import pandas as pd
+import re
 from sqlalchemy.sql import or_
 from rdkit import Chem
 import physical_validation as pv
@@ -156,7 +157,8 @@ class TaskBINDING(BaseTask):
         jobs_to_analyze = self.get_jobs_to_analyze(MD_BINDING, n_analyze=args.n_analyze)
         if len(jobs_to_analyze) == 0:
             return
-        results = self.analyze_multiprocess(self.analyze_single_job, jobs_to_analyze, args.n_jobs)
+        jobs_dirs = [job.ms_dir for job in jobs_to_analyze]
+        results = self.analyze_multiprocess(self.analyze_single_job, jobs_dirs, args.n_jobs)
         for i, job in enumerate(jobs_to_analyze):
             result = results[i]
             job.result = json.dumps(result)
@@ -168,9 +170,9 @@ class TaskBINDING(BaseTask):
                 job.status = Status.ANALYZED
             session.commit()
 
-    def analyze_single_job(self, job, check_converge: bool = True, cutoff_time: int = 7777):
+    def analyze_single_job(self, job_dir, check_converge: bool = True, cutoff_time: int = 7777):
         cwd = os.getcwd()
-        os.chdir(job.ms_dir)
+        os.chdir(job_dir)
         if isinstance(self.simulator, GROMACS):
             info_dict = dict()
             os.chdir(cwd)
@@ -180,7 +182,14 @@ class TaskBINDING(BaseTask):
                 return {'failed': True}
             cv_min = 0.1
             cv_max = 2.0
-            kbt = job.T * 0.0083144621  # kJ/mol
+            # get temperature
+            pattern = r"T_([\d.]+)_P"
+            matches = re.findall(pattern, job_dir)
+            if matches:
+                T = float(matches[-1])
+            else:
+                raise ValueError
+            kbt = T * 0.0083144621  # kJ/mol
             time_column = 0
             cv_column = 1
             sigma_column = 2

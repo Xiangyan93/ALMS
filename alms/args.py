@@ -97,6 +97,8 @@ class JobManagerArgs(Tap):
     """The memory used in each slurm job (GB)."""
     walltime: int = 48
     """Walltime of slurm jobs (hour)."""
+    exclude: str = None
+    """Do not submit job to the computational nodes."""
 
     @cached_property
     def JobManager(self) -> Slurm:

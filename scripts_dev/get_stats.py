@@ -9,25 +9,34 @@ from alms.database.models import *
 
 
 class Args(Tap):
-    task: Literal['qm_cv', 'md_npt']
+    task: Literal['qm_cv', 'md_npt', 'md_binding']
     """The task of molecular simulation."""
+
+    @property
+    def task_type(self):
+        if self.task == 'md_binding':
+            return DoubleMoleculeTask
+        else:
+            return SingleMoleculeTask
 
 
 def main(args: Args):
-    mols = session.query(SingleMolecule)
-    print('There are total %i molecules.' % mols.count())
-    print('%i molecules have been selected through active learning.' % mols.filter_by(active=True).count())
-    print('%i molecules have been rejected through active learning.' % mols.filter_by(inactive=True).count())
-    print('%i molecules haven\'t been considered in active learning.' %
-          mols.filter_by(active=False, inactive=False).count())
+    tasks = session.query(args.task_type)
+    print('There are total %i tasks.' % tasks.count())
+    print('%i tasks have been selected through active learning.' % tasks.filter_by(active=True).count())
+    print('%i tasks have been rejected through active learning.' % tasks.filter_by(inactive=True).count())
+    print('%i tasks haven\'t been considered in active learning.' %
+          tasks.filter_by(active=False, inactive=False).count())
 
     if args.task == 'qm_cv':
         jobs = session.query(QM_CV)
-        for mol in session.query(SingleMolecule).filter_by(active=True):
-            if Status.ANALYZED not in mol.status_qm_cv and Status.FAILED in mol.status_qm_cv:
-                print(f'{mol.id} failed.')
+        for task in session.query(SingleMoleculeTask).filter_by(active=True):
+            if Status.ANALYZED not in task.status('qm_cv') and Status.FAILED in task.status('qm_cv'):
+                print(f'{task.id} failed.')
     elif args.task == 'md_npt':
         jobs = session.query(MD_NPT)
+    elif args.task == 'md_binding':
+        jobs = session.query(MD_BINDING)
     else:
         return
 

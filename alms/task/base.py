@@ -130,7 +130,7 @@ class BaseTask(ABCTask):
                 commands = json.loads(job.commands_extend) if extend else json.loads(job.commands_mdrun)
                 sh = self.job_manager.generate_sh(name=name, path=job.ms_dir,
                                                   partition=args.partition, ntasks=args.ntasks, n_gpu=args.n_gpu,
-                                                  memory=args.mem, walltime=args.walltime,
+                                                  memory=args.mem, walltime=args.walltime, exclude=args.exclude,
                                                   commands=commands, save_running_time=True,
                                                   sh_index=True)
                 self.job_manager.submit(sh)
@@ -147,12 +147,12 @@ class BaseTask(ABCTask):
         return jobs_to_analyze
 
     @staticmethod
-    def analyze_multiprocess(analyze_function: Callable, jobs_to_analyze: List, n_jobs: int = 1) -> List:
+    def analyze_multiprocess(analyze_function: Callable, jobs_dirs: List, n_jobs: int = 1) -> List:
         results = []
-        n_analyze = int(math.ceil(len(jobs_to_analyze) / n_jobs))
+        n_analyze = int(math.ceil(len(jobs_dirs) / n_jobs))
         for i in tqdm(range(n_analyze), total=n_analyze):
-            jobs = jobs_to_analyze[i * n_jobs:(i + 1) * n_jobs]
+            jobs_dir = jobs_dirs[i * n_jobs:(i + 1) * n_jobs]
             with Pool(n_jobs) as p:
-                result = p.map(analyze_function, jobs)
+                result = p.map(analyze_function, jobs_dir)
             results += result
         return results
