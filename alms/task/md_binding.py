@@ -175,7 +175,6 @@ class TaskBINDING(BaseTask):
         os.chdir(job_dir)
         if isinstance(self.simulator, GROMACS):
             info_dict = dict()
-            os.chdir(cwd)
             kernels = 'KERNELS'
             colvar = 'COLVAR'
             if not os.path.exists(kernels) or not os.path.exists(colvar):
@@ -215,6 +214,7 @@ class TaskBINDING(BaseTask):
             df_fes = pd.DataFrame({'cv': FES_x, 'fe': FES_y})
             df_fes.to_csv('fes.dat', sep='\t', index=False)
             info_dict['binding_free_energy'] = FES_y.min() - FES_y[-1]
+            os.chdir(cwd)
             return info_dict
         else:
             raise ValueError
