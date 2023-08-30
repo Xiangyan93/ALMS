@@ -176,6 +176,8 @@ class TaskBINDING(BaseTask):
             os.chdir(cwd)
             kernels = 'KERNELS'
             colvar = 'COLVAR'
+            if not os.path.exists(kernels) or not os.path.exists(colvar):
+                return {'failed': True}
             cv_min = 0.1
             cv_max = 2.0
             kbt = job.T * 0.0083144621  # kJ/mol

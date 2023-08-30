@@ -131,7 +131,7 @@ class BaseTask(ABCTask):
                 sh = self.job_manager.generate_sh(name=name, path=job.ms_dir,
                                                   partition=args.partition, ntasks=args.ntasks, n_gpu=args.n_gpu,
                                                   memory=args.mem, walltime=args.walltime,
-                                                  commands=commands,
+                                                  commands=commands, save_running_time=True,
                                                   sh_index=True)
                 self.job_manager.submit(sh)
                 job.update_list('sh_file', [sh])
