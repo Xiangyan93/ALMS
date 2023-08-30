@@ -85,7 +85,6 @@ class Molecule(Base):
         cwd = os.getcwd()
         os.chdir(self.ms_dir)
         if not os.path.exists(f'{self.name}_ob.mol2'):
-            print(f'Molecule {self.id} checkout.')
             force_field.checkout(smiles_list=[self.smiles], n_mol_list=[1], name_list=[self.resname],
                                  res_name_list=[self.resname], simulator=simulator)
         os.chdir(cwd)
@@ -366,6 +365,24 @@ class MD_BINDING(Base):
                               f'T_{self.T}_P_{self.P}_seed_{self.seed}')
         create_missing_folders(ms_dir)
         return ms_dir
+
+    @property
+    def slurm_name(self) -> Optional[str]:
+        sh_file = json.loads(self.sh_file)
+        if sh_file:
+            assert sh_file[-1].endswith('.sh')
+            return sh_file[-1].split('/')[-1][:-3]
+        else:
+            return None
+
+    def update_dict(self, attr: str, p_dict: Dict):
+        update_dict(self, attr, p_dict)
+
+    def update_list(self, attr: str, p_list: List):
+        update_list(self, attr, p_list)
+
+    def delete(self, job_manager: Slurm = None):
+        delete_job(job=self, session=session, job_manager=job_manager)
 
 
 metadata.create_all(engine)
