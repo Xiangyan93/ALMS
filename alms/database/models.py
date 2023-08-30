@@ -85,7 +85,8 @@ class Molecule(Base):
         cwd = os.getcwd()
         os.chdir(self.ms_dir)
         if not os.path.exists(f'{self.name}_ob.mol2'):
-            force_field.checkout(smiles_list=[self.smiles], n_mol_list=[1], name_list=[self.name],
+            print(f'Molecule {self.id} checkout.')
+            force_field.checkout(smiles_list=[self.smiles], n_mol_list=[1], name_list=[self.resname],
                                  res_name_list=[self.resname], simulator=simulator)
         os.chdir(cwd)
 
@@ -231,7 +232,6 @@ class DoubleMoleculeTask(Base):
             for T in T_list:
                 for P in P_list:
                     for seed in range(n_repeats):
-                        print(T, P, seed)
                         md_binding = MD_BINDING(double_molecule_task_id=self.id, T=T, P=P, seed=seed)
                         add_or_query(md_binding, ['double_molecule_task_id', 'T', 'P', 'seed'])
         else:

@@ -42,7 +42,7 @@ class TaskCV(BaseTask):
         n_submit = args.n_run - self.job_manager.n_current_jobs
         if n_submit > 0:
             jobs_to_submit = session.query(QM_CV).filter_by(status=Status.PREPARED).limit(n_submit)
-            self.submit_jobs(jobs_to_submit=jobs_to_submit)
+            self.submit_jobs(args=args, jobs_to_submit=jobs_to_submit)
 
     def analyze(self, args: MonitorArgs):
         print('Analyzing results of qm_cv')

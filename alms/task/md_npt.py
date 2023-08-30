@@ -120,7 +120,7 @@ class TaskNPT(BaseTask):
         n_submit = args.n_run - self.job_manager.n_current_jobs
         if n_submit > 0:
             jobs_to_submit = session.query(MD_NPT).filter_by(status=Status.PREPARED).limit(n_submit)
-            self.submit_jobs(jobs_to_submit)
+            self.submit_jobs(args=args, jobs_to_submit=jobs_to_submit)
 
     def analyze(self, args: MonitorArgs):
         print('Analyzing results of md_npt')
@@ -316,7 +316,7 @@ class TaskNPT(BaseTask):
                 session.commit()
 
         jobs_to_submit = session.query(MD_NPT).filter_by(status=Status.EXTENDED)
-        self.submit_jobs(jobs_to_submit=jobs_to_submit, extend=True)
+        self.submit_jobs(args=args, jobs_to_submit=jobs_to_submit, extend=True)
 
     def update_fail_tasks(self):
         update_fail_mols()

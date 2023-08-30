@@ -16,14 +16,14 @@ class BaseTask(ABCTask):
     def active_learning(self, margs: MonitorArgs):
         if margs.strategy == 'all':
             if margs.task in ['qm_cv', 'md_npt']:
-                mols_all = session.query(SingleMoleculeTask)
+                tasks_all = session.query(SingleMoleculeTask)
             elif margs.task == 'md_binding':
-                mols_all = session.query(DoubleMoleculeTask)
+                tasks_all = session.query(DoubleMoleculeTask)
             else:
                 raise ValueError
-            for mol in tqdm(mols_all.all(), total=mols_all.count()):
-                mol.active = True
-                mol.inactive = False
+            for task in tqdm(tasks_all.all(), total=tasks_all.count()):
+                task.active = True
+                task.inactive = False
             session.commit()
         """
         if margs.stop_uncertainty is None:
@@ -116,18 +116,21 @@ class BaseTask(ABCTask):
         for i, mol1 in enumerate(mols):
             for j in range(i, mols.count()):
                 mol2 = mols[j]
+                if i != j and mol1.tag == mol2.tag:
+                    continue
                 mid = f'{mol1.id}_{mol2.id}'
                 task = DoubleMoleculeTask(molecules_id=mid)
                 add_or_query(task, ['molecules_id'])
         session.commit()
 
-    def submit_jobs(self, jobs_to_submit: List, extend: bool = False):
+    def submit_jobs(self, args: MonitorArgs, jobs_to_submit: List, extend: bool = False):
         if jobs_to_submit.count() != 0:
             for job in jobs_to_submit:
                 name = job.name + '_extend' if extend else job.name
                 commands = json.loads(job.commands_extend) if extend else json.loads(job.commands_mdrun)
-                sh = self.job_manager.generate_sh(path=job.ms_dir,
-                                                  name=name,
+                sh = self.job_manager.generate_sh(name=name, path=job.ms_dir,
+                                                  partition=args.partition, ntasks=args.ntasks, n_gpu=args.n_gpu,
+                                                  memory=args.mem, walltime=args.walltime,
                                                   commands=commands,
                                                   sh_index=True)
                 self.job_manager.submit(sh)

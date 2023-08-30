@@ -63,7 +63,7 @@ class TaskBINDING(BaseTask):
                                  res_name_list=['SOL'], simulator=self.simulator)
                 # create simulation box using packmol
                 if task.self_task:
-                    self.packmol.build_uniform(pdb_files=[f'{mol1.ms_dir}/{mol1.name}.pdb',
+                    self.packmol.build_uniform(pdb_files=[f'{mol1.ms_dir}/{mol1.resname}.pdb',
                                                           f'tip3p.pdb'],
                                                n_mol_list=[2, n_water],
                                                output='initial.pdb', box_size=[length] * 3, seed=job.seed)
@@ -73,8 +73,8 @@ class TaskBINDING(BaseTask):
                     self.simulator.modify_top_mol_numbers(top='topol.top', outtop='topol.top',
                                                           mol_name='SOL', n_mol=n_water)
                 else:
-                    self.packmol.build_uniform(pdb_files=[f'{mol1.ms_dir}/{mol1.name}.pdb',
-                                                          f'{mol2.ms_dir}/{mol2.name}.pdb',
+                    self.packmol.build_uniform(pdb_files=[f'{mol1.ms_dir}/{mol1.resname}.pdb',
+                                                          f'{mol2.ms_dir}/{mol2.resname}.pdb',
                                                           f'tip3p.pdb'],
                                                n_mol_list=[1, 1, n_water],
                                                output='initial.pdb', box_size=[length] * 3, seed=job.seed)
@@ -134,7 +134,7 @@ class TaskBINDING(BaseTask):
         n_submit = args.n_run - self.job_manager.n_current_jobs
         if n_submit > 0:
             jobs_to_submit = session.query(MD_BINDING).filter_by(status=Status.PREPARED).limit(n_submit)
-            self.submit_jobs(jobs_to_submit)
+            self.submit_jobs(args=args, jobs_to_submit=jobs_to_submit)
 
     def analyze(self, args: MonitorArgs):
         print('Analyzing results of md_npt')
@@ -209,7 +209,7 @@ class TaskBINDING(BaseTask):
                 session.commit()
 
         jobs_to_submit = session.query(MD_BINDING).filter_by(status=Status.EXTENDED)
-        self.submit_jobs(jobs_to_submit=jobs_to_submit, extend=True)
+        self.submit_jobs(args=args, jobs_to_submit=jobs_to_submit, extend=True)
 
     def update_fail_tasks(self):
         pass
