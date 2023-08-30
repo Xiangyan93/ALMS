@@ -6,10 +6,11 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy import create_engine, exists, and_, ForeignKey
 from sqlalchemy import Column, Integer, Float, Text, Boolean, String, ForeignKey, UniqueConstraint
 from rdkit import Chem
-from simutools.utils.utils import create_folder, create_missing_folders
-from simutools.forcefields.base import BaseForceField
-from simutools.simulator.program import BaseMDProgram
+from simutools.forcefields.amber import AMBER
+from simutools.simulator.program import GROMACS
 from simutools.simulator.mol3d import Mol3D
+from simutools.utils.utils import create_folder, create_missing_folders
+from simutools.utils.rdkit import get_format_charge
 from alms.utils import get_T_list_from_range
 from .utils import *
 
@@ -81,12 +82,13 @@ class Molecule(Base):
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)
 
-    def checkout(self, force_field: BaseForceField, simulator: BaseMDProgram):
+    def checkout(self, force_field: AMBER, simulator: Union[GROMACS]):
         cwd = os.getcwd()
         os.chdir(self.ms_dir)
         if not os.path.exists(f'{self.name}_ob.mol2'):
             force_field.checkout(smiles_list=[self.smiles], n_mol_list=[1], name_list=[self.resname],
                                  res_name_list=[self.resname], simulator=simulator)
+        simulator.fix_charge('checkout.top')
         os.chdir(cwd)
 
     @property
@@ -124,6 +126,10 @@ class Molecule(Base):
     def molwt(self) -> float:
         """"""
         return Mol3D(smiles=self.smiles).molwt
+
+    @property
+    def formal_charge(self) -> int:
+        return get_format_charge(self.smiles)
 
 
 class SingleMoleculeTask(Base):

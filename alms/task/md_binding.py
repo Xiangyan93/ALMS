@@ -63,24 +63,37 @@ class TaskBINDING(BaseTask):
                                  res_name_list=['SOL'], simulator=self.simulator)
                 # create simulation box using packmol
                 if task.self_task:
-                    self.packmol.build_uniform(pdb_files=[f'{mol1.ms_dir}/{mol1.resname}.pdb',
-                                                          f'tip3p.pdb'],
-                                               n_mol_list=[2, n_water],
-                                               output='initial.pdb', box_size=[length] * 3, seed=job.seed)
-                    self.simulator.merge_top([f'{mol1.ms_dir}/checkout', 'checkout'])
-                    self.simulator.modify_top_mol_numbers(top='topol.top', outtop='topol.top',
-                                                          mol_name=mol1.resname, n_mol=2)
-                    self.simulator.modify_top_mol_numbers(top='topol.top', outtop='topol.top',
-                                                          mol_name='SOL', n_mol=n_water)
+                    pdb_files = [f'{mol1.ms_dir}/{mol1.resname}.pdb', 'tip3p.pdb']
+                    n_mol_list = [2, n_water]
+                    mol_names = [mol1.resname, 'SOL']
                 else:
-                    self.packmol.build_uniform(pdb_files=[f'{mol1.ms_dir}/{mol1.resname}.pdb',
-                                                          f'{mol2.ms_dir}/{mol2.resname}.pdb',
-                                                          f'tip3p.pdb'],
-                                               n_mol_list=[1, 1, n_water],
-                                               output='initial.pdb', box_size=[length] * 3, seed=job.seed)
-                    self.simulator.merge_top([f'{mol1.ms_dir}/checkout', f'{mol2.ms_dir}/checkout', 'checkout'])
+                    pdb_files = [f'{mol1.ms_dir}/{mol1.resname}.pdb', f'{mol2.ms_dir}/{mol2.resname}.pdb', 'tip3p.pdb']
+                    n_mol_list = [1, 1, n_water]
+                    mol_names = [mol1.resname, mol2.resname, 'SOL']
+                top_dirs = [f'{mol1.ms_dir}/checkout', 'checkout']
+                charges = mol1.formal_charge + mol2.formal_charge
+                if charges > 0:
+                    self.ff.checkout(smiles_list=['[Cl-]'], n_mol_list=[1], name_list=['chloride'],
+                                     res_name_list=['CL '], simulator=self.simulator, outname='chloride')
+                    pdb_files += ['chloride.pdb']
+                    n_mol_list += [charges]
+                    top_dirs += ['chloride']
+                    mol_names += ['CL']
+                elif charges < 0:
+                    self.ff.checkout(smiles_list=['[Na-]'], n_mol_list=[1], name_list=['sodium'],
+                                     res_name_list=['NA '], simulator=self.simulator, outname='sodium')
+                    pdb_files += ['sodium.pdb']
+                    n_mol_list += [-charges]
+                    top_dirs += ['sodium']
+                    mol_names += ['NA']
+
+                self.packmol.build_uniform(pdb_files=pdb_files,
+                                           n_mol_list=n_mol_list,
+                                           output='initial.pdb', box_size=[length] * 3, seed=job.seed)
+                self.simulator.merge_top(top_dirs)
+                for i, nmol in enumerate(n_mol_list):
                     self.simulator.modify_top_mol_numbers(top='topol.top', outtop='topol.top',
-                                                          mol_name='SOL', n_mol=n_water)
+                                                          mol_name=mol_names[i], n_mol=nmol)
                 self.simulator.convert_pdb(pdb='initial.pdb', tag_out='initial', box_size=[length] * 3)
                 job.status = Status.BUILD
             session.commit()
@@ -113,7 +126,8 @@ class TaskBINDING(BaseTask):
                 # NPT equilibrium with Langevin thermostat and Berendsen barostat
                 gmx.generate_mdp_from_template(template='t_npt.mdp', mdp_out='eq.mdp', T=job.T, P=job.P,
                                                nsteps=1000000, nstxtcout=0, tcoupl='langevin', pcoupl='berendsen')
-                commands += [gmx.grompp(mdp='eq.mdp', gro='anneal.gro', top='topol.top', tpr='eq.tpr', exe=False),
+                commands += [gmx.grompp(mdp='eq.mdp', gro='anneal.gro', top='topol.top', tpr='eq.tpr', maxwarn=1,
+                                        exe=False),
                              gmx.mdrun(tpr='eq.tpr', ntomp=args.ntasks, exe=False)]
                 # NPT production with Langevin thermostat and Parrinello-Rahman barostat
                 gmx.generate_mdp_from_template(template='t_npt.mdp', mdp_out='npt.mdp', T=job.T, P=job.P,
