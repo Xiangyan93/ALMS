@@ -9,7 +9,7 @@ from alms.database.models import *
 
 
 class Args(Tap):
-    task: Literal['qm_cv', 'md_npt']
+    task: Literal['qm_cv', 'md_npt', 'md_binding']
     """The task of molecular simulation."""
 
 
