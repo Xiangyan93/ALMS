@@ -153,7 +153,7 @@ class TaskBINDING(BaseTask):
             self.submit_jobs(args=args, jobs_to_submit=jobs_to_submit)
 
     def analyze(self, args: MonitorArgs):
-        print('Analyzing results of md_npt')
+        print('Analyzing results of md_binding')
         jobs_to_analyze = self.get_jobs_to_analyze(MD_BINDING, n_analyze=args.n_analyze)
         if len(jobs_to_analyze) == 0:
             return

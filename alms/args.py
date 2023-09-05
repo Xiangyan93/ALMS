@@ -102,7 +102,9 @@ class JobManagerArgs(Tap):
 
     @cached_property
     def JobManager(self) -> Slurm:
-        return Slurm()
+        job_manager = Slurm()
+        job_manager.update_stored_jobs()
+        return job_manager
 
 
 class MonitorArgs(TaskArgs, ActiveLearningArgs, SoftwareArgs, JobManagerArgs, Tap):

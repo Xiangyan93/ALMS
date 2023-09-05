@@ -139,6 +139,17 @@ class BaseTask(ABCTask):
                 session.commit()
 
     def get_jobs_to_analyze(self, table, n_analyze: int) -> List:
+        """ get the jobs object to be analyzed.
+
+        Parameters
+        ----------
+        table: the job table to be analyzed in the
+        n_analyze
+
+        Returns
+        -------
+
+        """
         self.job_manager.update_stored_jobs()
         jobs_to_analyze = []
         for job in session.query(table).filter_by(status=Status.SUBMITED).limit(n_analyze):
@@ -147,7 +158,20 @@ class BaseTask(ABCTask):
         return jobs_to_analyze
 
     @staticmethod
-    def analyze_multiprocess(analyze_function: Callable, jobs_dirs: List, n_jobs: int = 1) -> List:
+    def analyze_multiprocess(analyze_function: Callable, jobs_dirs: List, n_jobs: int = 1) -> List[Dict]:
+        """ multiprocess analyze the results.
+        Important: the input cannot be  SQLAlchemy objects. They are not allows to be process in a multiprocess manner.
+
+        Parameters
+        ----------
+        analyze_function: the single-process analyze function.
+        jobs_dirs: the directories of jobs.
+        n_jobs: the number of multiprocess.
+
+        Returns
+        -------
+        The analuzed results.
+        """
         results = []
         n_analyze = int(math.ceil(len(jobs_dirs) / n_jobs))
         for i in tqdm(range(n_analyze), total=n_analyze):
