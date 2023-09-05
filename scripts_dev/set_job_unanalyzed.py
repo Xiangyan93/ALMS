@@ -18,6 +18,8 @@ def main(args: Args):
         jobs = session.query(QM_CV)
     elif args.task == 'md_npt':
         jobs = session.query(MD_NPT)
+    elif args.task == 'md_binding':
+        jobs = session.query(MD_BINDING)
     else:
         return
 
