@@ -174,7 +174,6 @@ class TaskBINDING(BaseTask):
         cwd = os.getcwd()
         os.chdir(job_dir)
         if isinstance(self.simulator, GROMACS):
-            info_dict = dict()
             kernels = 'KERNELS'
             colvar = 'COLVAR'
             if not os.path.exists(kernels) or not os.path.exists(colvar):
@@ -203,6 +202,7 @@ class TaskBINDING(BaseTask):
             df = pd.read_table(colvar, sep='\s+', comment='#', header=None)
             df = df[~df[time_column].duplicated(keep='last')]
             df = df[(df[time_column] > start_time) & (df[time_column] <= stop_time)]
+            # Reweight to get the free energy of OPES-MetaD
             nbins = 191
             FES_x = np.linspace(cv_min, cv_max, nbins)
             dist = (np.tile(df[cv_column].to_numpy(), (len(FES_x), 1)) - FES_x.reshape(-1, 1)) / sigma
@@ -211,9 +211,10 @@ class TaskBINDING(BaseTask):
             FES_y -= FES_y.min()
             # consider radius entropy effect
             FES_y = FES_y + kbt * np.log(4 * np.pi * FES_x ** 2)
-            df_fes = pd.DataFrame({'cv': FES_x, 'fe': FES_y})
-            df_fes.to_csv('fes.dat', sep='\t', index=False)
-            info_dict['binding_free_energy'] = FES_y.min() - FES_y[-1]
+            info_dict = {'distance': FES_x.tolist(), 'fe': FES_y.tolist()}
+            df_fes = pd.DataFrame(info_dict)
+            df_fes.to_csv('fes.dat', sep='\t', index=False, header=False)
+            info_dict['binding_free_energy'] = FES_y[:int(nbins / 2)].min() - FES_y[-1]
             os.chdir(cwd)
             return info_dict
         else:
