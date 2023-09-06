@@ -45,7 +45,7 @@ class TaskBINDING(BaseTask):
         # pick args.n_prepare tasks.
         tasks = []
         for task in session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True):
-            if len(task.status('md_binding')) == 1 and task.status('md_binding')[0] == Status.STARTED:
+            if Status.STARTED in task.status('md_binding'):
                 tasks.append(task)
             if len(tasks) == args.n_prepare:
                 break
@@ -58,6 +58,8 @@ class TaskBINDING(BaseTask):
             mol1 = task.molecule_1
             mol2 = task.molecule_2
             for job in task.md_binding:
+                if job.status != Status.STARTED:
+                    continue
                 os.chdir(job.ms_dir)
                 # checkout tip3p water
                 self.ff.checkout(smiles_list=['O'], n_mol_list=[1], name_list=['tip3p'],
