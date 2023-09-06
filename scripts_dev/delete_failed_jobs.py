@@ -20,9 +20,7 @@ def main(args: Args):
         return
 
     for job in jobs.filter_by(status=Status.FAILED):
-        if job.sh_file is not None:
-            job.status = Status.SUBMITED
-            job.result = None
+        job.delete()
     session.commit()
 
 
