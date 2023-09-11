@@ -144,9 +144,5 @@ class MonitorArgs(TaskArgs, ActiveLearningArgs, SoftwareArgs, JobManagerArgs, Ta
 
 
 class ExportArgs(Tap):
-    property: Literal['density', 'cp', 'hvap'] = None
+    property: Literal['density', 'cp', 'hvap', 'binding_fe'] = None
     """The property to export. None will output molecules list."""
-    use_all: bool = False
-    """Use all data."""
-    use_test: bool = False
-    """Export test set data."""

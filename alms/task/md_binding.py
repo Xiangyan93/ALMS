@@ -3,22 +3,14 @@
 import os
 import math
 from tqdm import tqdm
-from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 import re
-from sqlalchemy.sql import or_
-from rdkit import Chem
-import physical_validation as pv
 from panedr.panedr import edr_to_df
-from simutools.forcefields.amber import AMBER
-from simutools.simulator.program import Packmol, GROMACS, PLUMED
-from simutools.simulator.func import build
-from simutools.utils.series import is_converged, block_average
+from simutools.simulator.program import Packmol, PLUMED
 from .base import BaseTask
 from ..args import MonitorArgs
 from ..database.models import *
-from ..analysis.cp import update_fail_mols
 
 
 class TaskBINDING(BaseTask):
@@ -172,10 +164,25 @@ class TaskBINDING(BaseTask):
                 job.status = Status.ANALYZED
             session.commit()
 
-    def analyze_single_job(self, job_dir, check_converge: bool = True, cutoff_time: int = 7777):
+    def analyze_single_job(self, job_dir, check_converge: bool = True, cutoff_time: float = 100.):
         cwd = os.getcwd()
         os.chdir(job_dir)
         if isinstance(self.simulator, GROMACS):
+            # general info
+            info_dict = {}
+            npt_edr = 'npt.edr'
+            df = edr_to_df(npt_edr)
+            time_sim = df.Potential.index[-1] / 1000  # unit: ns
+            if time_sim < 25:
+                info_dict['failed'] = True
+                os.chdir(cwd)
+                return info_dict
+            elif time_sim < cutoff_time:
+                info_dict['continue'] = True
+                info_dict['continue_n'] = 5000000
+                os.chdir(cwd)
+                return info_dict
+            # calculate binding free energy
             kernels = 'KERNELS'
             colvar = 'COLVAR'
             if not os.path.exists(kernels) or not os.path.exists(colvar):
@@ -213,8 +220,9 @@ class TaskBINDING(BaseTask):
             FES_y -= FES_y.min()
             # consider radius entropy effect
             FES_y = FES_y + kbt * np.log(4 * np.pi * FES_x ** 2)
-            info_dict = {'distance': FES_x.tolist(), 'fe': FES_y.tolist()}
-            df_fes = pd.DataFrame(info_dict)
+            FES_y -= FES_y.min()
+            info_dict_ = {'distance': FES_x.tolist(), 'fe': FES_y.tolist()}
+            df_fes = pd.DataFrame(info_dict_)
             df_fes.to_csv('fes.dat', sep='\t', index=False, header=False)
             info_dict['binding_free_energy'] = FES_y[:int(nbins / 2)].min() - FES_y[-1]
             os.chdir(cwd)
