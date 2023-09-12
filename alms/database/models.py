@@ -131,6 +131,9 @@ class Molecule(Base):
     def formal_charge(self) -> int:
         return get_format_charge(self.smiles)
 
+    def delete(self):
+        delete_job(job=self, session=session, job_manager=None)
+
 
 class SingleMoleculeTask(Base):
     __tablename__ = 'single_molecule_task'
@@ -180,14 +183,12 @@ class SingleMoleculeTask(Base):
         else:
             raise ValueError
 
-    def delete_jobs(self, task: Literal['qm_cv', 'md_npt'], job_manager: Slurm = None):
-        jobs = self.qm_cv if task == 'qm_cv' else self.md_npt
-        for job in jobs:
-            job.delete(job_manager)
-        try:
-            shutil.rmtree(os.path.join(self.ms_dir, task))
-        except:
-            pass
+    def delete(self, job_manager: Slurm = None):
+        for job in self.md_npt:
+            job.delete(job_manager=job_manager)
+        for job in self.qm_cv:
+            job.delete(job_manager=job_manager)
+        delete_job(job=self, session=session, job_manager=None)
 
 
 class DoubleMoleculeTask(Base):
@@ -247,6 +248,11 @@ class DoubleMoleculeTask(Base):
             return list(set([job.status for job in self.md_binding]))
         else:
             raise ValueError
+
+    def delete(self, job_manager: Slurm = None):
+        for job in self.md_binding:
+            job.delete(job_manager=job_manager)
+        delete_job(job=self, session=session, job_manager=None)
 
 
 class QM_CV(Base):
