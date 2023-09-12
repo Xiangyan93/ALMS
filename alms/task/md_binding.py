@@ -243,8 +243,8 @@ class TaskBINDING(BaseTask):
                     gmx = self.simulator
                     os.chdir(job.ms_dir)
                     extend = json.loads(job.result)['continue_n'] * dt
-                    commands += [gmx.convert_tpr(tpr='npt.tpr', extend=extend),
-                                 gmx.mdrun(tpr='npt.tpr', ntomp=args.ntasks, plumed='plumed.dat', exe=False,
+                    gmx.convert_tpr(tpr='npt.tpr', extend=extend)
+                    commands += [gmx.mdrun(tpr='npt.tpr', ntomp=args.ntasks, plumed='plumed.dat', exe=False,
                                            extend=True)]
                 job.commands_extend = json.dumps(commands)
                 job.status = Status.EXTENDED
