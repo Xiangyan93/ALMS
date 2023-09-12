@@ -177,6 +177,7 @@ class TaskBINDING(BaseTask):
                 return {'failed': True}
             df = edr_to_df(npt_edr)
             time_sim = df.Potential.index[-1] / 1000  # unit: ns
+            info_dict['simulation_time'] = time_sim
             if time_sim < 25:
                 os.chdir(cwd)
                 return {'failed': True}
@@ -235,24 +236,26 @@ class TaskBINDING(BaseTask):
             raise ValueError
 
     def extend(self, args: MonitorArgs):
-        dt = 0.002
-        jobs_to_extend = session.query(MD_BINDING).filter_by(status=Status.NOT_CONVERGED)
-        if jobs_to_extend.count != 0:
-            for job in jobs_to_extend:
-                commands = []
-                if isinstance(self.simulator, GROMACS):
-                    gmx = self.simulator
-                    os.chdir(job.ms_dir)
-                    extend = json.loads(job.result)['continue_n'] * dt
-                    gmx.convert_tpr(tpr='npt.tpr', extend=extend)
-                    commands += [gmx.mdrun(tpr='npt.tpr', ntomp=args.ntasks, plumed='plumed.dat', exe=False,
-                                           extend=True)]
-                job.commands_extend = json.dumps(commands)
-                job.status = Status.EXTENDED
-                session.commit()
+        n_extend = args.n_run - self.job_manager.n_current_jobs
+        if n_extend > 0:
+            dt = 0.002
+            jobs_to_extend = session.query(MD_BINDING).filter_by(status=Status.NOT_CONVERGED).limit(n_extend)
+            if jobs_to_extend.count != 0:
+                for job in jobs_to_extend:
+                    commands = []
+                    if isinstance(self.simulator, GROMACS):
+                        gmx = self.simulator
+                        os.chdir(job.ms_dir)
+                        extend = json.loads(job.result)['continue_n'] * dt
+                        gmx.convert_tpr(tpr='npt.tpr', extend=extend)
+                        commands += [gmx.mdrun(tpr='npt.tpr', ntomp=args.ntasks, plumed='plumed.dat', exe=False,
+                                               extend=True)]
+                    job.commands_extend = json.dumps(commands)
+                    job.status = Status.EXTENDED
+                    session.commit()
 
-        jobs_to_submit = session.query(MD_BINDING).filter_by(status=Status.EXTENDED)
-        self.submit_jobs(args=args, jobs_to_submit=jobs_to_submit, extend=True)
+            jobs_to_submit = session.query(MD_BINDING).filter_by(status=Status.EXTENDED)
+            self.submit_jobs(args=args, jobs_to_submit=jobs_to_submit, extend=True)
 
     def update_fail_tasks(self):
         pass
