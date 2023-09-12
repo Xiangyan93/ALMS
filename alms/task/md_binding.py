@@ -29,15 +29,8 @@ class TaskBINDING(BaseTask):
     def create(self, args: MonitorArgs):
         tasks = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
         for task in tqdm(tasks, total=tasks.count()):
-            N_fail = 0
-            N_unfail = 0
-            for job in task.md_binding:
-                if job.status == Status.FAILED:
-                    N_fail += 1
-                else:
-                    N_unfail += 1
-            if N_unfail < 5:
-                task.create_jobs(task='md_binding', n_repeats=5 + N_fail, T_list=[298.], P_list=[1.])
+            fail_jobs = [job for job in task.qm_cv if job.status == Status.FAILED]
+            task.create_jobs(task='md_binding', n_repeats=5 + len(fail_jobs), T_list=[298.], P_list=[1.])
         session.commit()
 
     def build(self, args: MonitorArgs, length: float = 5., n_water: int = 3000, upper_bound: float = 2.):
