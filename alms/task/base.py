@@ -153,9 +153,11 @@ class BaseTask(ABCTask, ABC):
         """
         self.job_manager.update_stored_jobs()
         jobs_to_analyze = []
-        for job in session.query(table).filter_by(status=Status.SUBMITED).limit(n_analyze):
+        for job in session.query(table).filter_by(status=Status.SUBMITED):
             if not self.job_manager.is_running(job.slurm_name):
                 jobs_to_analyze.append(job)
+            if len(jobs_to_analyze) >= n_analyze:
+                break
         return jobs_to_analyze
 
     @staticmethod
