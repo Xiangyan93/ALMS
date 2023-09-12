@@ -29,7 +29,7 @@ class TaskBINDING(BaseTask):
     def create(self, args: MonitorArgs):
         tasks = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
         for task in tqdm(tasks, total=tasks.count()):
-            fail_jobs = [job for job in task.qm_cv if job.status == Status.FAILED]
+            fail_jobs = [job for job in task.md_binding if job.status == Status.FAILED]
             task.create_jobs(task='md_binding', n_repeats=5 + len(fail_jobs), T_list=[298.], P_list=[1.])
         session.commit()
 
