@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from abc import ABC
 from typing import Callable
 import math
 from tqdm import tqdm
@@ -9,7 +10,7 @@ from .abc import ABCTask
 from ..args import MonitorArgs
 
 
-class BaseTask(ABCTask):
+class BaseTask(ABCTask, ABC):
     def __init__(self, job_manager: Slurm):
         self.job_manager = job_manager
 

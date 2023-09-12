@@ -171,12 +171,14 @@ class TaskBINDING(BaseTask):
             # general info
             info_dict = {}
             npt_edr = 'npt.edr'
+            if not os.path.exists(npt_edr):
+                os.chdir(cwd)
+                return {'failed': True}
             df = edr_to_df(npt_edr)
             time_sim = df.Potential.index[-1] / 1000  # unit: ns
             if time_sim < 25:
-                info_dict['failed'] = True
                 os.chdir(cwd)
-                return info_dict
+                return {'failed': True}
             elif time_sim < cutoff_time:
                 info_dict['continue'] = True
                 info_dict['continue_n'] = 5000000
@@ -186,6 +188,7 @@ class TaskBINDING(BaseTask):
             kernels = 'KERNELS'
             colvar = 'COLVAR'
             if not os.path.exists(kernels) or not os.path.exists(colvar):
+                os.chdir(cwd)
                 return {'failed': True}
             cv_min = 0.1
             cv_max = 2.0
