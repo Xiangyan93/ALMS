@@ -9,16 +9,15 @@ from rdkit import Chem
 from simutools.forcefields.amber import AMBER
 from simutools.simulator.program import GROMACS
 from simutools.simulator.mol3d import Mol3D
-from simutools.utils.utils import create_folder, create_missing_folders
 from simutools.utils.rdkit import get_format_charge
 from alms.utils import get_T_list_from_range
 from .utils import *
 
 CWD = os.path.dirname(os.path.abspath(__file__))
-create_missing_folders(os.path.abspath(os.path.join(CWD, '..', '..', 'data', 'tmp')))
-create_missing_folders(os.path.abspath(os.path.join(CWD, '..', '..', 'data', 'simulation', 'molecules')))
-create_missing_folders(os.path.abspath(os.path.join(CWD, '..', '..', 'data', 'simulation', 'tasks_one_molecule')))
-create_missing_folders(os.path.abspath(os.path.join(CWD, '..', '..', 'data', 'simulation', 'tasks_two_molecules')))
+os.makedirs(os.path.join(CWD, '..', '..', 'data', 'tmp'), exist_ok=True)
+os.makedirs(os.path.join(CWD, '..', '..', 'data', 'simulation', 'molecules'), exist_ok=True)
+os.makedirs(os.path.join(CWD, '..', '..', 'data', 'simulation', 'tasks_one_molecule'), exist_ok=True)
+os.makedirs(os.path.join(CWD, '..', '..', 'data', 'simulation', 'tasks_two_molecules'), exist_ok=True)
 
 Base = declarative_base()
 metadata = Base.metadata
@@ -94,7 +93,7 @@ class Molecule(Base):
     @property
     def ms_dir(self) -> str:
         ms_dir = os.path.join(CWD, '..', '..', 'data', 'simulation', 'molecules', str(self.id))
-        create_folder(ms_dir)
+        os.makedirs(ms_dir, exist_ok=True)
         return os.path.abspath(ms_dir)
 
     @property
@@ -153,7 +152,7 @@ class SingleMoleculeTask(Base):
     @property
     def ms_dir(self) -> str:
         ms_dir = os.path.join(CWD, '..', '..', 'data', 'simulation', 'tasks_one_molecule', str(self.id))
-        create_folder(ms_dir)
+        os.makedirs(ms_dir, exist_ok=True)
         return os.path.abspath(ms_dir)
 
     def set_status(self, attr: str, status: int):
@@ -209,7 +208,7 @@ class DoubleMoleculeTask(Base):
     @property
     def ms_dir(self) -> str:
         ms_dir = os.path.join(CWD, '..', '..', 'data', 'simulation', 'tasks_two_molecules', str(self.id))
-        create_folder(ms_dir)
+        os.makedirs(ms_dir, exist_ok=True)
         return os.path.abspath(ms_dir)
 
     @property
@@ -274,7 +273,7 @@ class QM_CV(Base):
     @property
     def ms_dir(self) -> str:
         ms_dir = os.path.join(self.single_molecule_task.ms_dir, self.__tablename__, f'seed_{self.seed}')
-        create_missing_folders(ms_dir)
+        os.makedirs(ms_dir, exist_ok=True)
         return ms_dir
 
     @property
@@ -317,7 +316,7 @@ class MD_NPT(Base):
     @property
     def ms_dir(self) -> str:
         ms_dir = os.path.join(self.single_molecule_task.ms_dir, self.__tablename__, f'T_{self.T}_P_{self.P}')
-        create_missing_folders(ms_dir)
+        os.makedirs(ms_dir, exist_ok=True)
         return ms_dir
 
     @property
@@ -375,7 +374,7 @@ class MD_BINDING(Base):
         ms_dir = os.path.join(self.double_molecule_task.ms_dir,
                               self.__tablename__,
                               f'T_{self.T}_P_{self.P}_seed_{self.seed}')
-        create_missing_folders(ms_dir)
+        os.makedirs(ms_dir, exist_ok=True)
         return ms_dir
 
     @property
