@@ -77,7 +77,7 @@ class TaskBINDING(BaseTask):
                     top_dirs += ['chloride']
                     mol_names += ['CL']
                 elif charges < 0:
-                    self.ff.checkout(smiles_list=['[Na-]'], n_mol_list=[1], name_list=['sodium'],
+                    self.ff.checkout(smiles_list=['[Na+]'], n_mol_list=[1], name_list=['sodium'],
                                      res_name_list=['NA '], simulator=self.simulator, outname='sodium')
                     pdb_files += ['sodium.pdb']
                     n_mol_list += [-charges]
