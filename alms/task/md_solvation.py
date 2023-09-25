@@ -177,7 +177,9 @@ class TaskSOLVATION(BaseTask):
                     info_dict['continue_n'] = 1000000
                     os.chdir(cwd)
                     return info_dict
-            result = self.simulator.bar(xvgs=[f'lambda{i}/fep_{i}.xvg' for i in range(13)], begin=100)[0].decode()
+            result = self.simulator.bar(xvgs=[f'lambda{i}/fep_{i}.xvg' for i in range(13)],
+                                        begin=100,
+                                        output='bar.xvg')[0].decode()
             result = result.split('\n')[-3]
             assert result.startswith('total')
             info_dict['freesolv'] = float(result.split()[-3])
