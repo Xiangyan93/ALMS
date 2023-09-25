@@ -144,6 +144,7 @@ class SingleMoleculeTask(Base):
     molecule = relationship('Molecule', back_populates='single_molecule_task')
     qm_cv = relationship('QM_CV', back_populates='single_molecule_task')
     md_npt = relationship('MD_NPT', back_populates='single_molecule_task')
+    md_solvation = relationship('MD_SOLVATION', back_populates='single_molecule_task')
 
     @property
     def name(self) -> str:
@@ -164,21 +165,28 @@ class SingleMoleculeTask(Base):
             return list(set([job.status for job in self.qm_cv]))
         elif task == 'md_npt':
             return list(set([job.status for job in self.md_npt]))
+        elif task == 'md_solvation':
+            return list(set([job.status for job in self.md_solvation]))
         else:
             raise ValueError
 
     def create_jobs(self, task: Literal['qm_cv', 'md_npt'], n_conformer: int = 1,
-                    T_min: float = None, T_max: float = None, n_T: int = None, P_list: List[float] = None):
+                    T_list: List[float] = None, P_list: List[float] = None):
         if task == 'qm_cv':
             for i in range(n_conformer):
                 qm_cv = QM_CV(single_molecule_task_id=self.id, seed=i)
                 add_or_query(qm_cv, ['single_molecule_task_id', 'seed'])
         elif task == 'md_npt':
-            T_list = get_T_list_from_range(self.molecule.tc * T_min, self.molecule.tc * T_max, n_point=n_T)
+            # T_list = get_T_list_from_range(self.molecule.tc * 0.4, self.molecule.tc * 0.9, n_point=16)
             for T in T_list:
                 for P in P_list:
                     md_npt = MD_NPT(single_molecule_task_id=self.id, T=T, P=P)
                     add_or_query(md_npt, ['single_molecule_task_id', 'T', 'P'])
+        elif task == 'md_solvation':
+            for T in T_list:
+                for P in P_list:
+                    md_solvation = MD_SOLVATION(single_molecule_task_id=self.id, T=T, P=P)
+                    add_or_query(md_solvation, ['single_molecule_task_id', 'T', 'P'])
         else:
             raise ValueError
 
@@ -186,6 +194,8 @@ class SingleMoleculeTask(Base):
         for job in self.md_npt:
             job.delete(job_manager=job_manager)
         for job in self.qm_cv:
+            job.delete(job_manager=job_manager)
+        for job in self.md_solvation:
             job.delete(job_manager=job_manager)
         delete_job(job=self, session=session, job_manager=None)
 
@@ -328,17 +338,48 @@ class MD_NPT(Base):
         else:
             return None
 
+    def update_dict(self, attr: str, p_dict: Dict):
+        update_dict(self, attr, p_dict)
+
+    def update_list(self, attr: str, p_list: List):
+        update_list(self, attr, p_list)
+
+    def delete(self, job_manager: Slurm = None):
+        delete_job(job=self, session=session, job_manager=job_manager)
+
+
+class MD_SOLVATION(Base):
+    __tablename__ = 'md_solvation'
+    id = Column(Integer, primary_key=True)
+    status = Column(Integer, default=Status.STARTED)
+    T = Column(Float)  # in K
+    P = Column(Float)  # in bar
+    commands_mdrun = Column(Text)
+    commands_extend = Column(Text)
+    sh_file = Column(Text)
+    result = Column(Text)
+
+    single_molecule_task_id = Column(Integer, ForeignKey('single_molecule_task.id'))
+    single_molecule_task = relationship('SingleMoleculeTask', back_populates='md_solvation')
+
     @property
-    def mdrun_times(self) -> int:
-        log = os.path.join(self.ms_dir, 'npt.log')
-        if not os.path.exists(log):
-            return 0
-        f = open(log, 'r')
-        n = 0
-        for line in f.readlines():
-            if line.startswith('Started mdrun'):
-                n += 1
-        return n
+    def name(self) -> str:
+        return f'{self.single_molecule_task.name}_{self.__tablename__}_T_{self.T}_P_{self.P}'
+
+    @property
+    def ms_dir(self) -> str:
+        ms_dir = os.path.join(self.single_molecule_task.ms_dir, self.__tablename__, f'T_{self.T}_P_{self.P}')
+        os.makedirs(ms_dir, exist_ok=True)
+        return ms_dir
+
+    @property
+    def slurm_name(self) -> Optional[str]:
+        sh_file = json.loads(self.sh_file)
+        if sh_file:
+            assert sh_file[-1].endswith('.sh')
+            return sh_file[-1].split('/')[-1][:-3]
+        else:
+            return None
 
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)

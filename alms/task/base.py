@@ -16,7 +16,7 @@ class BaseTask(ABCTask, ABC):
 
     def active_learning(self, margs: MonitorArgs):
         if margs.strategy == 'all':
-            if margs.task in ['qm_cv', 'md_npt']:
+            if margs.task in ['qm_cv', 'md_npt', 'md_solvation']:
                 tasks_all = session.query(SingleMoleculeTask)
             elif margs.task == 'md_binding':
                 tasks_all = session.query(DoubleMoleculeTask)

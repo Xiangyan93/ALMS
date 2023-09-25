@@ -24,7 +24,7 @@ class   SubmitArgs(Tap):
 
 
 class TaskArgs(Tap):
-    task: Literal['qm_cv', 'md_npt', 'md_binding']
+    task: Literal['qm_cv', 'md_npt', 'md_binding', 'md_solvation']
     """The task of molecular simulation"""
     @property
     def task_nmol(self) -> int:
@@ -102,6 +102,7 @@ class JobManagerArgs(Tap):
 
     @cached_property
     def JobManager(self) -> Slurm:
+        return None
         job_manager = Slurm()
         job_manager.update_stored_jobs()
         return job_manager

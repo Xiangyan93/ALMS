@@ -87,10 +87,10 @@ def export(args: ExportArgs):
         df = pd.DataFrame({'drug_smiles': [], 'drug_name': [], 'excp_smiles': [], 'excp_name': [], 'binding_fe_de': [],
                            'binding_fe_dd': [], 'binding_fe_ee': []})
         for mol1 in mols:
-            if mol1.tag != 'drug' or mol1.id != 7:
+            if mol1.tag != 'drug':
                 continue
             for mol2 in mols:
-                if mol2.tag != 'excp' or mol2.id in [81, 87, 94]:
+                if mol2.tag != 'excp':
                     continue
                 task = session.query(DoubleMoleculeTask).filter_by(molecules_id=f'{mol1.id}_{mol2.id}').first()
                 binding_fe_de = []
@@ -98,8 +98,6 @@ def export(args: ExportArgs):
                     fe = json.loads(job.result).get('binding_free_energy')
                     if fe and fe > -50:
                         binding_fe_de.append(fe)
-                if np.min(binding_fe_de) < -40:
-                    print(mol1.id, mol2.id, binding_fe_de)
                 assert len(binding_fe_de) >= 4
 
                 task = session.query(DoubleMoleculeTask).filter_by(molecules_id=f'{mol1.id}_{mol1.id}').first()
@@ -108,8 +106,6 @@ def export(args: ExportArgs):
                     fe = json.loads(job.result).get('binding_free_energy')
                     if fe and fe > -50:
                         binding_fe_dd.append(fe)
-                if np.min(binding_fe_dd) < -40:
-                    print(mol1.id, mol1.id, binding_fe_dd)
                 assert len(binding_fe_dd) >= 4
 
                 task = session.query(DoubleMoleculeTask).filter_by(molecules_id=f'{mol2.id}_{mol2.id}').first()
@@ -118,12 +114,12 @@ def export(args: ExportArgs):
                     fe = json.loads(job.result).get('binding_free_energy')
                     if fe and fe > -50:
                         binding_fe_ee.append(fe)
-                if np.min(binding_fe_ee) < -40:
-                    print(mol2.id, mol2.id, binding_fe_ee)
                 assert len(binding_fe_ee) >= 4
-                print(binding_fe_dd, np.mean(binding_fe_dd))
+                # if np.min(binding_fe_dd + binding_fe_de + binding_fe_ee) < -50:
+                #     print(binding_fe_dd, binding_fe_de, binding_fe_ee)
                 df.loc[len(df)] = [mol1.smiles, mol1.name, mol2.smiles, mol2.name,
                                    np.mean(binding_fe_de), np.mean(binding_fe_dd), np.mean(binding_fe_ee)]
+        df.to_csv('binding_fe.csv', index=False)
         df.to_csv('binding_fe.csv', index=False)
     elif args.property is None:
         smiles = [task.molecule.smiles for task in session.query(SingleMoleculeTask)]

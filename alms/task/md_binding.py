@@ -13,6 +13,23 @@ from ..args import MonitorArgs
 from ..database.models import *
 
 
+em_mdp_kwargs = {'template': 't_em.mdp', 'mdp_out': 'em.mdp', 'dielectric': 1.0}
+
+
+anneal_kwargs = {'template': 't_nvt_anneal.mdp', 'mdp_out': 'anneal.mdp', 'dt': 0.001,
+                 'nsteps': 200000, 'nstenergy': 100, 'nstxout': 0, 'nstvout': 0, 'nstxtcout': 0, 'xtcgrps': 'System',
+                 'dielectric': 1.0, 'T': 298, 'TANNEAL': 800, 'continuation': 'no'}
+
+
+eq_kwargs = {'template': 't_npt.mdp', 'mdp_out': 'eq.mdp', 'dielectric': 1.0,
+             'integrator': 'sd', 'dt': 0.001, 'nsteps': 1000000, 'nstenergy': 1000,
+             'nstxout': 0, 'nstvout': 0, 'nstxtcout': 0, 'xtcgrps': 'System',
+             'coulombtype': 'PME', 'rcoulomb': 1.2, 'rvdw': 1.2,
+             'tcoupl': 'no', 'T': 298,
+             'pcoupl': 'berendsen', 'tau_p': 1, 'compressibility': '4.5e-5', 'P': 1,
+             'genvel': 'yes', 'seed': 0, 'constraints': 'h-bonds', 'continuation': 'no'}
+
+
 class TaskBINDING(BaseTask):
     def __init__(self, job_manager: Slurm, force_field: Union[AMBER], simulator: Union[GROMACS],
                  plumed: PLUMED, packmol: Packmol):
@@ -111,27 +128,34 @@ class TaskBINDING(BaseTask):
                                                        upper_bound=upper_bound,
                                                        barrier=50)
                 # energy minimization
-                gmx.generate_mdp_from_template(template='t_em.mdp', mdp_out='em.mdp')
+                gmx.generate_mdp_from_template(**em_mdp_kwargs)
                 commands += [gmx.grompp(mdp='em.mdp', gro='initial.gro', top='topol.top', tpr='em.tpr',
                                         maxwarn=2, exe=False),
                              gmx.mdrun(tpr='em.tpr', ntomp=args.ntasks, exe=False)]
-                # NVT annealing from 0 to TA_annealing to target T with Langevin thermostat
-                gmx.generate_mdp_from_template(template='t_nvt_anneal.mdp', mdp_out='anneal.mdp',
-                                               T=job.T, T_annealing=800, nsteps=200000, nstxtcout=0)
+                # NVT annealing from 0 to T_annealing to target T with Langevin thermostat
+                temp_kwargs = anneal_kwargs.copy()
+                temp_kwargs['T'] = job.T
+                gmx.generate_mdp_from_template(**temp_kwargs)
                 commands += [gmx.grompp(mdp='anneal.mdp', gro='em.gro', top='topol.top', tpr='anneal.tpr', exe=False),
                              gmx.mdrun(tpr='anneal.tpr', ntomp=args.ntasks, exe=False)]
                 # NPT equilibrium with Langevin thermostat and Berendsen barostat
-                gmx.generate_mdp_from_template(template='t_npt.mdp', mdp_out='eq.mdp', T=job.T, P=job.P,
-                                               nsteps=1000000, nstxtcout=0, tcoupl='langevin', pcoupl='berendsen')
+                temp_kwargs = eq_kwargs.copy()
+                temp_kwargs['T'] = job.T
+                temp_kwargs['P'] = job.P
+                temp_kwargs['seed'] = job.seed
+                gmx.generate_mdp_from_template(**temp_kwargs)
                 commands += [gmx.grompp(mdp='eq.mdp', gro='anneal.gro', top='topol.top', tpr='eq.tpr', maxwarn=1,
                                         exe=False),
                              gmx.mdrun(tpr='eq.tpr', ntomp=args.ntasks, exe=False)]
                 # NPT production with Langevin thermostat and Parrinello-Rahman barostat
-                gmx.generate_mdp_from_template(template='t_npt.mdp', mdp_out='npt.mdp', T=job.T, P=job.P,
-                                               dt=0.002, nsteps=15000000, nstenergy=50000,
-                                               nstxout=500000, nstvout=500000,
-                                               nstxtcout=50000, restart=True,
-                                               tcoupl='langevin', pcoupl='parrinello-rahman')
+                gmx.generate_mdp_from_template(
+                    template='t_npt.mdp', mdp_out='npt.mdp', dielectric=1.0,
+                    integrator='sd', dt=0.002, nsteps=15000000, nstenergy=50000,
+                    nstxout=0, nstvout=0, nstxtcout=500000, xtcgrps='System',
+                    coulombtype='PME', rcoulomb=1.2, rvdw=1.2,
+                    tcoupl='no', T=job.T,
+                    pcoupl='parrinello-rahman', tau_p=5, compressibility='4.5e-5', P=job.P,
+                    genvel='no', seed=job.seed, constraints='h-bonds', continuation='yes')
                 commands += [gmx.grompp(mdp='npt.mdp', gro='eq.gro', top='topol.top', tpr='npt.tpr', exe=False),
                              gmx.mdrun(tpr='npt.tpr', ntomp=args.ntasks, plumed='plumed.dat', exe=False)]
             else:

@@ -10,6 +10,7 @@ from alms.args import MonitorArgs, SoftwareArgs
 from alms.task.qm_cv import TaskCV
 from alms.task.md_npt import TaskNPT
 from alms.task.md_binding import TaskBINDING
+from alms.task.md_solvation import TaskSOLVATION
 
 """
 def active_learning(margs: MonitorArgs):
@@ -99,6 +100,9 @@ def monitor(args: MonitorArgs):
     elif args.task == 'md_binding':
         task = TaskBINDING(force_field=args.ForceField, simulator=args.Simulator, packmol=args.Packmol,
                            job_manager=args.JobManager, plumed=args.Plumed)
+    elif args.task == 'md_solvation':
+        task = TaskSOLVATION(force_field=args.ForceField, simulator=args.Simulator, packmol=args.Packmol,
+                             job_manager=args.JobManager)
     else:
         raise ValueError()
 
