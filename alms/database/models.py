@@ -54,6 +54,17 @@ def add_or_query(row, keys: List[str]):
         return result
 
 
+def slurm_name(self) -> Optional[str]:
+    if self.sh_file is None:
+        return None
+    sh_file = json.loads(self.sh_file)
+    if sh_file:
+        assert sh_file[-1].endswith('.sh')
+        return sh_file[-1].split('/')[-1][:-3]
+    else:
+        return None
+
+
 class Status:
     STARTED = 0  # create task.
     BUILD = 1  # create all task input files
@@ -288,12 +299,7 @@ class QM_CV(Base):
 
     @property
     def slurm_name(self) -> Optional[str]:
-        sh_file = json.loads(self.sh_file)
-        if sh_file:
-            assert sh_file[-1].endswith('.sh')
-            return sh_file[-1].split('/')[-1][:-3]
-        else:
-            return None
+        return slurm_name(self)
 
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)
@@ -331,12 +337,7 @@ class MD_NPT(Base):
 
     @property
     def slurm_name(self) -> Optional[str]:
-        sh_file = json.loads(self.sh_file)
-        if sh_file:
-            assert sh_file[-1].endswith('.sh')
-            return sh_file[-1].split('/')[-1][:-3]
-        else:
-            return None
+        return slurm_name(self)
 
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)
@@ -374,12 +375,7 @@ class MD_SOLVATION(Base):
 
     @property
     def slurm_name(self) -> Optional[str]:
-        sh_file = json.loads(self.sh_file)
-        if sh_file:
-            assert sh_file[-1].endswith('.sh')
-            return sh_file[-1].split('/')[-1][:-3]
-        else:
-            return None
+        return slurm_name(self)
 
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)
@@ -420,12 +416,7 @@ class MD_BINDING(Base):
 
     @property
     def slurm_name(self) -> Optional[str]:
-        sh_file = json.loads(self.sh_file)
-        if sh_file:
-            assert sh_file[-1].endswith('.sh')
-            return sh_file[-1].split('/')[-1][:-3]
-        else:
-            return None
+        return slurm_name(self)
 
     def update_dict(self, attr: str, p_dict: Dict):
         update_dict(self, attr, p_dict)
