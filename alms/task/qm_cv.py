@@ -45,7 +45,6 @@ class TaskCV(BaseTask):
             self.submit_jobs(args=args, jobs_to_submit=jobs_to_submit)
 
     def analyze(self, args: MonitorArgs):
-        print('Analyzing results of qm_cv')
         jobs_to_analyze = self.get_jobs_to_analyze(QM_CV, n_analyze=args.n_analyze)
         results = self.analyze_multiprocess(self.analyze_single_job, jobs_to_analyze, args.n_jobs)
         for i, job in enumerate(jobs_to_analyze):

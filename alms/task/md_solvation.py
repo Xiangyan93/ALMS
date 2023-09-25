@@ -142,8 +142,7 @@ class TaskSOLVATION(BaseTask):
             self.submit_jobs(args=args, jobs_to_submit=jobs_to_submit)
 
     def analyze(self, args: MonitorArgs):
-        print('Analyzing results of md_binding')
-        jobs_to_analyze = self.get_jobs_to_analyze(MD_BINDING, n_analyze=args.n_analyze)
+        jobs_to_analyze = self.get_jobs_to_analyze(MD_SOLVATION, n_analyze=args.n_analyze)
         if len(jobs_to_analyze) == 0:
             return
         jobs_dirs = [job.ms_dir for job in jobs_to_analyze]
@@ -159,12 +158,31 @@ class TaskSOLVATION(BaseTask):
                 job.status = Status.ANALYZED
             session.commit()
 
-    def analyze_single_job(self, job_dir, check_converge: bool = True, cutoff_time: float = 100.):
+    def analyze_single_job(self, job_dir, check_converge: bool = True, cutoff_time: float = 1.):
         cwd = os.getcwd()
         os.chdir(job_dir)
         if isinstance(self.simulator, GROMACS):
             # general info
             info_dict = {}
+            # check if simulation sucessfully finished
+            for i in range(13):
+                edr = f'lambda{i}/fep_{i}.edr'
+                if not os.path.exists(edr):
+                    os.chdir(cwd)
+                    return {'failed': True}
+                df = edr_to_df(edr)
+                time_sim = df.Potential.index[-1] / 1000  # unit: ns
+                if time_sim < cutoff_time:
+                    info_dict['continue'] = True
+                    info_dict['continue_n'] = 1000000
+                    os.chdir(cwd)
+                    return info_dict
+            result = self.simulator.bar(xvgs=[f'lambda{i}/fep_{i}.xvg' for i in range(13)], begin=100)[0].decode()
+            result = result.split('\n')[-3]
+            assert result.startswith('total')
+            info_dict['freesolv'] = float(result.split()[-3])
+            info_dict['freesolv_std'] = float(result.split()[-1])
+            os.chdir(cwd)
             return info_dict
         else:
             raise ValueError
