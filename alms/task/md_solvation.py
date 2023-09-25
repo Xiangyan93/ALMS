@@ -115,8 +115,8 @@ class TaskSOLVATION(BaseTask):
                 for i in range(13):
                     gmx.generate_mdp_from_template(
                         template='t_fep.mdp', mdp_out=f'fep_{i}.mdp', dielectric=1.0,
-                        integrator='sd', dt=0.002, nsteps=100000, nstenergy=1000,
-                        nstxout=0, nstvout=0, nstxtcout=1000, xtcgrps='System',
+                        integrator='sd', dt=0.002, nsteps=1000000, nstenergy=10000,
+                        nstxout=0, nstvout=0, nstxtcout=10000, xtcgrps='System',
                         coulombtype='PME', rcoulomb=1.2, rvdw=1.2,
                         tcoupl='no', T=job.T,
                         pcoupl='parrinello-rahman', tau_p=5, compressibility='4.5e-5', P=job.P,
