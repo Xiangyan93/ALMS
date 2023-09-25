@@ -13,7 +13,7 @@ from simutools.simulator.program import Gaussian, Packmol, GROMACS, PLUMED
 from simutools.forcefields.amber import AMBER
 
 
-class   SubmitArgs(Tap):
+class SubmitArgs(Tap):
     files: List[str]
     """Submit a list of input files in CSV format. It must contain smiles, optional for name."""
     heavy_atoms: Tuple[int, int] = None
@@ -102,7 +102,6 @@ class JobManagerArgs(Tap):
 
     @cached_property
     def JobManager(self) -> Slurm:
-        return None
         job_manager = Slurm()
         job_manager.update_stored_jobs()
         return job_manager
