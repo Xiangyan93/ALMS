@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from tap import Tap
 from alms.database.models import *
+from tqdm import tqdm
 
 
 class Args(Tap):
@@ -22,11 +23,14 @@ def main(args: Args):
         for mol in mols:
             if args.id_range[0] <= mol.id <= args.id_range[1]:
                 delete_mols.append(mol)
+    delete_mols_id = [mol.id for mol in delete_mols]
+    for task in tqdm(session.query(DoubleMoleculeTask), total=session.query(DoubleMoleculeTask).count()):
+        if task.molecule_id_1 in delete_mols_id or task.molecule_id_2 in delete_mols_id:
+            task.delete(job_manager=job_manager)
+            session.commit()
     for mol in delete_mols:
-        mol.single_molecule_task.delete(job_manager=job_manager)
-        for task in session.query(DoubleMoleculeTask):
-            if task.molecule_id_1 == mol.id or task.molecule_id_2 == mol.id:
-                task.delete(job_manager=job_manager)
+        if mol.single_molecule_task is not None:
+            mol.single_molecule_task.delete(job_manager=job_manager)
         session.delete(mol)
         session.commit()
 
