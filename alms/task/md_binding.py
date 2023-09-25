@@ -188,7 +188,7 @@ class TaskBINDING(BaseTask):
                 job.status = Status.ANALYZED
             session.commit()
 
-    def analyze_single_job(self, job_dir, check_converge: bool = True, cutoff_time: float = 100.):
+    def analyze_single_job(self, job_dir, check_converge: bool = True, cutoff_time: float = 60.):
         cwd = os.getcwd()
         os.chdir(job_dir)
         if isinstance(self.simulator, GROMACS):
