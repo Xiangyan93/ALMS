@@ -108,7 +108,7 @@ class TaskSOLVATION(BaseTask):
                                         exe=False),
                              gmx.mdrun(tpr='eq.tpr', ntomp=args.ntasks, exe=False)]
                 # Free energy perturbation
-                for i in range(13):
+                for i in range(21):
                     os.mkdir(f'lambda{i}')
                     gmx.generate_mdp_from_template(
                         template='t_fep.mdp', mdp_out=f'fep_{i}.mdp', dielectric=1.0,
@@ -119,7 +119,7 @@ class TaskSOLVATION(BaseTask):
                         pcoupl='parrinello-rahman', tau_p=5, compressibility='4.5e-5', P=job.P,
                         genvel='no', seed=0, constraints='h-bonds', continuation='yes',
                         couple_moltype=job.single_molecule_task.molecule.resname,
-                        init_lambda_state=i, fep_lambdas='0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.85 0.9 0.95 1.0')
+                        init_lambda_state=i)
                     commands += [f'cd lambda{i}',
                                  gmx.grompp(mdp=f'../fep_{i}.mdp', gro='../eq.gro', top='../topol.top',
                                             tpr=f'fep_{i}.tpr', exe=False),
