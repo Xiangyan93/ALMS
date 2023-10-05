@@ -4,10 +4,7 @@ import os
 CWD = os.path.dirname(os.path.abspath(__file__))
 from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
 from tap import Tap
-import numpy as np
-import pandas as pd
 from functools import cached_property
-from mgktools.features_mol.features_generators import FeaturesGenerator
 from simutools.jobmanager import Slurm
 from simutools.simulator.program import Gaussian, Packmol, GROMACS, PLUMED
 from simutools.forcefields.amber import AMBER

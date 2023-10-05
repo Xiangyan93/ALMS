@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
-import math
 from tqdm import tqdm
-import numpy as np
-import pandas as pd
-import re
 from panedr.panedr import edr_to_df
 from simutools.simulator.program import Packmol
 from .base import BaseTask
@@ -28,10 +23,11 @@ class TaskSOLVATION(BaseTask):
     def create(self, args: MonitorArgs):
         tasks = session.query(SingleMoleculeTask).filter(SingleMoleculeTask.active == True)
         for task in tqdm(tasks, total=tasks.count()):
-            task.create_jobs(task='md_solvation', T_list=[298.], P_list=[1.])
+            if task.md_solvation.count() == 0:
+                task.create_jobs(task='md_solvation', T_list=[298.], P_list=[1.])
         session.commit()
 
-    def build(self, args: MonitorArgs, length: float = 5., n_water: int = 3000, upper_bound: float = 2.):
+    def build(self, args: MonitorArgs, length: float = 8., n_water: int = 10000):
         cwd = os.getcwd()
         # pick args.n_prepare tasks.
         tasks = []
@@ -117,7 +113,7 @@ class TaskSOLVATION(BaseTask):
                     gmx.generate_mdp_from_template(
                         template='t_fep.mdp', mdp_out=f'fep_{i}.mdp', dielectric=1.0,
                         integrator='sd', dt=0.002, nsteps=1000000, nstenergy=10000,
-                        nstxout=0, nstvout=0, nstxtcout=10000, xtcgrps='System',
+                        nstxout=0, nstvout=0, nstxtcout=10000, xtcgrps='System', rlist=2.0,
                         coulombtype='PME', rcoulomb=1.2, rvdw=1.2,
                         tcoupl='no', T=job.T,
                         pcoupl='parrinello-rahman', tau_p=5, compressibility='4.5e-5', P=job.P,
@@ -173,10 +169,8 @@ class TaskSOLVATION(BaseTask):
                 df = edr_to_df(edr)
                 time_sim = df.Potential.index[-1] / 1000  # unit: ns
                 if time_sim < cutoff_time:
-                    info_dict['continue'] = True
-                    info_dict['continue_n'] = 1000000
                     os.chdir(cwd)
-                    return info_dict
+                    return {'failed': True}
             result = self.simulator.bar(xvgs=[f'lambda{i}/fep_{i}.xvg' for i in range(13)],
                                         begin=100,
                                         output='bar.xvg')[0].decode()

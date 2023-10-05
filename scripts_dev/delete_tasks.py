@@ -11,17 +11,15 @@ class Args(Tap):
 
 
 def main(args: Args):
-    if args.task == 'qm_cv':
-        jobs = session.query(QM_CV)
-    elif args.task == 'md_npt':
-        jobs = session.query(MD_NPT)
+    if args.task in ['qm_cv', 'md_npt', 'md_solvation']:
+        tasks = session.query(SingleMoleculeTask)
     elif args.task == 'md_binding':
-        jobs = session.query(MD_BINDING)
+        tasks = session.query(DoubleMoleculeTask)
     else:
         return
 
-    for job in jobs.filter_by(status=Status.FAILED):
-        job.delete()
+    for task in tasks:
+        task.delete()
     session.commit()
 
 

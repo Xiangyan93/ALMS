@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 import os.path
 from abc import ABC, abstractmethod
-from simutools.simulator.program import BaseMDProgram
 from ..args import MonitorArgs
 
 

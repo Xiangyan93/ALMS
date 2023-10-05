@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import math
-from multiprocessing import Pool
 from tqdm import tqdm
-from sqlalchemy.sql import or_
 from simutools.simulator.program import Gaussian
 from .base import BaseTask
 from ..args import MonitorArgs

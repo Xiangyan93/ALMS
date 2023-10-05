@@ -359,6 +359,7 @@ class MD_SOLVATION(Base):
     commands_extend = Column(Text)
     sh_file = Column(Text)
     result = Column(Text)
+    n_water = Column(Integer, default=1000)
 
     single_molecule_task_id = Column(Integer, ForeignKey('single_molecule_task.id'))
     single_molecule_task = relationship('SingleMoleculeTask', back_populates='md_solvation')

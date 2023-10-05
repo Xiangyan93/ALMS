@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
-import math
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
