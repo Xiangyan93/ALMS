@@ -17,6 +17,8 @@ def main(args: Args):
         jobs = session.query(MD_NPT)
     elif args.task == 'md_binding':
         jobs = session.query(MD_BINDING)
+    elif args.task == 'md_solvation':
+        jobs = session.query(MD_SOLVATION)
     else:
         return
 

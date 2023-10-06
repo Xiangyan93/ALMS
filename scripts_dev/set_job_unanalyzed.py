@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
-CWD = os.path.dirname(os.path.abspath(__file__))
-import sys
-sys.path.append(os.path.join(CWD, '..'))
 from tap import Tap
 from alms.database.models import *
+from alms.task import TASK
 
 
 class Args(Tap):
-    task: Literal['qm_cv', 'md_npt', 'md_binding']
+    task: TASK
     """The task of molecular simulation."""
 
 
@@ -20,6 +17,8 @@ def main(args: Args):
         jobs = session.query(MD_NPT)
     elif args.task == 'md_binding':
         jobs = session.query(MD_BINDING)
+    elif args.task == 'md_solvation':
+        jobs = session.query(MD_SOLVATION)
     else:
         return
 
@@ -32,4 +31,3 @@ def main(args: Args):
 
 if __name__ == '__main__':
     main(args=Args().parse_args())
-

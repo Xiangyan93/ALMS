@@ -252,7 +252,10 @@ class TaskBINDING(BaseTask):
             df_fes.to_csv('fes.dat', sep='\t', index=False, header=False)
             info_dict['binding_free_energy'] = FES_y[:int(nbins / 2)].min() - FES_y[-1]
             os.chdir(cwd)
-            return info_dict
+            if info_dict['binding_free_energy'] < - 100:
+                return {'failed': True}
+            else:
+                return info_dict
         else:
             raise ValueError
 
