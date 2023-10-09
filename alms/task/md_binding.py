@@ -38,7 +38,7 @@ class TaskBINDING(BaseTask):
         self.plumed = plumed
 
     def active_learning(self, margs: MonitorArgs):
-        self.create_double_molecule_tasks(rule=margs.combinatorial_file, file=margs.combinatorial_file)
+        self.create_double_molecule_tasks(rule=margs.combination_rule, file=margs.combination_file)
         super().active_learning(margs)
 
     def create(self, args: MonitorArgs):
