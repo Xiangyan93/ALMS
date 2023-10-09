@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
-CWD = os.path.dirname(os.path.abspath(__file__))
 from typing import Dict, Iterator, List, Optional, Union, Literal, Tuple
 from tap import Tap
 from functools import cached_property
@@ -23,6 +21,10 @@ class SubmitArgs(Tap):
 class TaskArgs(Tap):
     task: Literal['qm_cv', 'md_npt', 'md_binding', 'md_solvation']
     """The task of molecular simulation"""
+    combination_rule: Literal['cross', 'full', 'specified'] = 'cross'
+    """The combination rule to create double molecule tasks"""
+    combination_file: str = None
+    """The combination file to create double molecule tasks"""
     @property
     def task_nmol(self) -> int:
         if self.task in ['qm_cv', 'md_npt']:
@@ -63,7 +65,7 @@ class SoftwareArgs(Tap):
     @cached_property
     def ForceField(self) -> Union[AMBER]:
         if self.force_field.endswith('antechamber'):
-            return AMBER(exe=self.force_field)
+            return AMBER(exe=self.force_field, force_field='gaff2')
         else:
             raise ValueError(f'Unsupported force field: {self.force_field}')
 
@@ -137,7 +139,10 @@ class MonitorArgs(TaskArgs, ActiveLearningArgs, SoftwareArgs, JobManagerArgs, Ta
     """Random seed."""
 
     def process_args(self) -> None:
-        pass
+        if self.combination_file is not None:
+            assert self.combination_rule == 'specified', ('combination_rule must be specified when combination_file is '
+                                                          'not None.')
+            assert self.task == 'md_binding', 'combination_file is only valid for md_binding task.'
 
 
 class ExportArgs(Tap):

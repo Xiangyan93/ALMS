@@ -96,30 +96,30 @@ def export(args: ExportArgs):
                 binding_fe_de = []
                 for job in task.md_binding:
                     fe = json.loads(job.result).get('binding_free_energy')
-                    if fe and fe > -50:
+                    if fe and fe > -100:
                         binding_fe_de.append(fe)
-                assert len(binding_fe_de) >= 4
+                assert len(binding_fe_de) >= 5
 
                 task = session.query(DoubleMoleculeTask).filter_by(molecules_id=f'{mol1.id}_{mol1.id}').first()
                 binding_fe_dd = []
                 for job in task.md_binding:
                     fe = json.loads(job.result).get('binding_free_energy')
-                    if fe and fe > -50:
+                    if fe and fe > -100:
                         binding_fe_dd.append(fe)
-                assert len(binding_fe_dd) >= 4
+                assert len(binding_fe_dd) >= 5
 
                 task = session.query(DoubleMoleculeTask).filter_by(molecules_id=f'{mol2.id}_{mol2.id}').first()
                 binding_fe_ee = []
                 for job in task.md_binding:
                     fe = json.loads(job.result).get('binding_free_energy')
-                    if fe and fe > -50:
+                    if fe and fe > -100:
                         binding_fe_ee.append(fe)
-                assert len(binding_fe_ee) >= 4
+                if len(binding_fe_ee) < 5:
+                    print(binding_fe_ee)
                 # if np.min(binding_fe_dd + binding_fe_de + binding_fe_ee) < -50:
                 #     print(binding_fe_dd, binding_fe_de, binding_fe_ee)
                 df.loc[len(df)] = [mol1.smiles, mol1.name, mol2.smiles, mol2.name,
                                    np.mean(binding_fe_de), np.mean(binding_fe_dd), np.mean(binding_fe_ee)]
-        df.to_csv('binding_fe.csv', index=False)
         df.to_csv('binding_fe.csv', index=False)
     elif args.property is None:
         smiles = [task.molecule.smiles for task in session.query(SingleMoleculeTask)]

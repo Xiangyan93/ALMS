@@ -38,7 +38,7 @@ class TaskBINDING(BaseTask):
         self.plumed = plumed
 
     def active_learning(self, margs: MonitorArgs):
-        self.create_double_molecule_tasks()
+        self.create_double_molecule_tasks(rule=margs.combinatorial_file, file=margs.combinatorial_file)
         super().active_learning(margs)
 
     def create(self, args: MonitorArgs):
@@ -282,4 +282,10 @@ class TaskBINDING(BaseTask):
             self.submit_jobs(args=args, jobs_to_submit=jobs_to_submit, extend=True)
 
     def update_fail_tasks(self):
-        pass
+        tasks = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
+        for task in tqdm(tasks, total=tasks.count()):
+            fail_jobs = [job for job in task.md_binding if job.status == Status.FAILED]
+            if len(fail_jobs) >= 5:
+                task.active = False
+                task.inactive = True
+        session.commit()

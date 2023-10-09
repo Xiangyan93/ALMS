@@ -5,6 +5,7 @@ from typing import Callable
 import math
 from tqdm import tqdm
 from multiprocessing import Pool
+import pandas as pd
 from alms.database.models import *
 from .abc import ABCTask
 from ..args import MonitorArgs
@@ -112,13 +113,34 @@ class BaseTask(ABCTask, ABC):
         session.commit()
 
     @staticmethod
-    def create_double_molecule_tasks():
+    def create_double_molecule_tasks(rule: Literal['cross', 'full', 'specified'] = 'cross', file: str = None):
         mols = session.query(Molecule)
-        for i, mol1 in enumerate(mols):
-            for j in range(i, mols.count()):
-                mol2 = mols[j]
-                if i != j and mol1.tag == mol2.tag:
-                    continue
+        # cross: cross combination of molecules with different tags (e.g. drug and excp).
+        if rule == 'cross':
+            for i, mol1 in enumerate(mols):
+                for j in range(i, mols.count()):
+                    mol2 = mols[j]
+                    if i != j and mol1.tag == mol2.tag:
+                        continue
+                    mid = f'{mol1.id}_{mol2.id}'
+                    task = DoubleMoleculeTask(molecules_id=mid)
+                    add_or_query(task, ['molecules_id'])
+        # full: full combination of all molecules.
+        elif rule == 'full':
+            for i, mol1 in enumerate(mols):
+                for j in range(i, mols.count()):
+                    mol2 = mols[j]
+                    mid = f'{mol1.id}_{mol2.id}'
+                    task = DoubleMoleculeTask(molecules_id=mid)
+                    add_or_query(task, ['molecules_id'])
+        # specified: specified combination of molecules through a file.
+        elif rule == 'specified':
+            assert file is not None
+            df = pd.read_csv(file)
+            for i, row in df.iterrows():
+                name_mol1, name_mol2 = row.tolist()[:2]
+                mol1 = mols.filter_by(name=name_mol1).first()
+                mol2 = mols.filter_by(name=name_mol2).first()
                 mid = f'{mol1.id}_{mol2.id}'
                 task = DoubleMoleculeTask(molecules_id=mid)
                 add_or_query(task, ['molecules_id'])
