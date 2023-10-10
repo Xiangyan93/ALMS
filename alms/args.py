@@ -21,7 +21,7 @@ class SubmitArgs(Tap):
 class TaskArgs(Tap):
     task: Literal['qm_cv', 'md_npt', 'md_binding', 'md_solvation']
     """The task of molecular simulation"""
-    combination_rule: Literal['cross', 'full', 'specified'] = 'cross'
+    combination_rule: Literal['cross', 'full', 'self', 'specified'] = 'cross'
     """The combination rule to create double molecule tasks"""
     combination_file: str = None
     """The combination file to create double molecule tasks"""
