@@ -106,7 +106,7 @@ def monitor(args: MonitorArgs):
     else:
         raise ValueError()
 
-    task.init(args)
+    task.initiation(args)
     while True:
         print('Start a new loop\n'
               'Step1: active learning.\n\n')
