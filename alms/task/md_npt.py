@@ -26,8 +26,10 @@ class TaskNPT(BaseTask):
         self.simulator = simulator
         self.packmol = packmol
 
-    def active_learning(self, margs: MonitorArgs):
+    def initiation(self, args: MonitorArgs):
         self.create_single_molecule_tasks()
+
+    def active_learning(self, margs: MonitorArgs):
         super().active_learning(margs)
 
     def create(self, args: MonitorArgs):

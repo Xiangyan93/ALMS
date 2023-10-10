@@ -7,6 +7,10 @@ from ..args import MonitorArgs
 
 class ABCTask(ABC):
     @abstractmethod
+    def initiation(self, args: MonitorArgs):
+        pass
+
+    @abstractmethod
     def active_learning(self, args: MonitorArgs):
         pass
 
