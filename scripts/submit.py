@@ -14,6 +14,7 @@ from chemprop.train import make_predictions
 
 
 def submit(args: SubmitArgs):
+    used_resname = [mol.resname for mol in session.query(Molecule).all()]
     for file in args.files:
         df = pd.read_csv(file)
         for i, row in tqdm(df.iterrows(), total=len(df)):
@@ -22,7 +23,13 @@ def submit(args: SubmitArgs):
                                 heavy_atoms=args.heavy_atoms)
             if smiles is not None:
                 name = row.get('name') or random_string(8)
-                resname = row.get('resname') or random_string(3)
+                if row.get('resname') is None:
+                    resname = random_string(3)
+                    while resname in used_resname:
+                        resname = random_string(3)
+                    used_resname.append(resname)
+                else:
+                    resname = row.get('resname')
                 mol = Molecule(smiles=smiles, name=name, resname=resname, tag=args.tag)
                 add_or_query(mol, ['smiles'])
     session.commit()
