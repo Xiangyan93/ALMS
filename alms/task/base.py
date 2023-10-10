@@ -134,6 +134,11 @@ class BaseTask(ABCTask, ABC):
                     task = DoubleMoleculeTask(molecules_id=mid)
                     add_or_query(task, ['molecules_id'])
         # specified: specified combination of molecules through a file.
+        elif rule == 'self':
+            for i, mol1 in enumerate(mols):
+                mid = f'{mol1.id}_{mol1.id}'
+                task = DoubleMoleculeTask(molecules_id=mid)
+                add_or_query(task, ['molecules_id'])
         elif rule == 'specified':
             assert file is not None
             df = pd.read_csv(file)
