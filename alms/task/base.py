@@ -18,9 +18,9 @@ class BaseTask(ABCTask, ABC):
     def active_learning(self, margs: MonitorArgs):
         if margs.strategy == 'all':
             if margs.task in ['qm_cv', 'md_npt', 'md_solvation']:
-                tasks_all = session.query(SingleMoleculeTask)
+                tasks_all = session.query(SingleMoleculeTask).filter_by(active=False, inactive=False)
             elif margs.task == 'md_binding':
-                tasks_all = session.query(DoubleMoleculeTask)
+                tasks_all = session.query(DoubleMoleculeTask).filter_by(active=False, inactive=False)
             else:
                 raise ValueError
             for task in tqdm(tasks_all.all(), total=tasks_all.count()):
