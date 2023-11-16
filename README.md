@@ -1,5 +1,5 @@
 # ALMS (Active Learning Molecular Simulation)
-ALMS is a program designed to generate large-scale molecular property data sets using machine learning and computational chemistry techniques. 
+ALMS is a program designed to generate large-scale molecular property data sets using machine learning and computational chemistry techniques. [Efficient Exploration of Chemical Compound Space Using Active Learning for Prediction of Thermodynamic Properties of Alkane Molecules](https://pubs.acs.org/doi/full/10.1021/acs.jcim.3c01430).
 
 It contains three main parts.
 - Active Learning ([Gaussian Process Regression, Marginalized Graph Kernel](https://github.com/xiangyan93/Chem-Graph-Kernel-Machine)).
