@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os.path
 from abc import ABC
 from typing import Callable
 import math
+import pandas as pd
+import numpy as np
 from tqdm import tqdm
 from multiprocessing import Pool
-import pandas as pd
+from molalkit.args import ActiveLearningArgs
+from molalkit.al.learner import ActiveLearner
 from alms.database.models import *
-from .abc import ABCTask
-from ..args import MonitorArgs
+from alms.task.abc import ABCTask
+from alms.args import MonitorArgs
 
 
 class BaseTask(ABCTask, ABC):
@@ -16,93 +20,135 @@ class BaseTask(ABCTask, ABC):
         self.job_manager = job_manager
 
     def active_learning(self, margs: MonitorArgs):
-        if margs.strategy == 'all':
-            if margs.task in ['qm_cv', 'md_npt', 'md_solvation']:
-                tasks_all = session.query(SingleMoleculeTask).filter_by(active=False, inactive=False)
-            elif margs.task == 'md_binding':
-                tasks_all = session.query(DoubleMoleculeTask).filter_by(active=False, inactive=False)
-            else:
-                raise ValueError
-            for task in tqdm(tasks_all.all(), total=tasks_all.count()):
+        save_dir = f'{CWD}/../al_tmp'
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        simulation_finished = True
+        if margs.task in ['qm_cv', 'md_npt', 'md_solvation']:
+            pure_columns = ['smiles']
+            tasks_all = session.query(SingleMoleculeTask)
+            tasks_active = tasks_all.filter_by(active=True, inactive=False)
+            if tasks_active.count() == 0:
+                # randomly sample 2 data as the start of active learning.
+                tasks_active = np.random.choice(tasks_all.all(), 2, replace=False)
+                for task in tasks_active:
+                    task.active = True
+                    task.inactive = False
+                    task.selected_id = 0
+                tasks_active = tasks_all.filter_by(active=True, inactive=False)
+            df_active = pd.DataFrame({'smiles': [], 'target': [], 'id': []})
+            for task in tasks_active:
+                if (task.properties is None or
+                        margs.task in ['qm_cv', 'md_npt'] or
+                        json.loads(task.properties).get('solvation_free_energy') is None):
+                    simulation_finished = False
+                    target = 0.
+                else:
+                    target = json.loads(task.properties).get('solvation_free_energy')
+                df_active.loc[len(df_active)] = task.molecule.smiles, target, task.id
+            df_active.to_csv(f'{save_dir}/train.csv', index=False)
+            tasks_pool = tasks_all.filter_by(active=False, inactive=False)
+            df_pool = pd.DataFrame({'smiles': [], 'target': [], 'id': []})
+            for task in tasks_pool:
+                # set the target property to be 0. before the simulation is finished.
+                df_pool.loc[len(df_pool)] = task.molecule.smiles, 0., task.id
+            df_pool.to_csv(f'{save_dir}/pool.csv', index=False)
+        elif margs.task == 'md_binding':
+            pure_columns = ['smiles1', 'smiles2']
+            tasks_all = session.query(DoubleMoleculeTask)
+            tasks_active = tasks_all.filter_by(active=True, inactive=False)
+            if tasks_active.count() == 0:
+                # randomly sample 2 data as the start of active learning.
+                tasks_active = np.random.choice(tasks_all.all(), 2, replace=False)
+                for task in tasks_active:
+                    task.active = True
+                    task.inactive = False
+                    task.selected_id = 0
+                tasks_active = tasks_all.filter_by(active=True, inactive=False)
+            df_active = pd.DataFrame({'smiles1': [], 'smiles2': [], 'mixture': [], 'target': [], 'id': []})
+            for task in tasks_active:
+                if task.properties is None or json.loads(task.properties).get('binding_free_energy') is None:
+                    simulation_finished = False
+                    target = 0.
+                else:
+                    target = json.loads(task.properties).get('binding_free_energy')
+                smiles1, smiles2 = task.molecule_1.smiles, task.molecule_2.smiles
+                mixture = json.dumps([smiles1, 0.5, smiles2, 0.5])
+                df_active.loc[len(df_active)] = smiles1, smiles2, mixture, target, task.id
+            df_active.to_csv(f'{save_dir}/train.csv', index=False)
+            tasks_pool = tasks_all.filter_by(active=False, inactive=False)
+            df_pool = pd.DataFrame({'smiles1': [], 'smiles2': [], 'mixture': [], 'target': [], 'id': []})
+            for task in tasks_pool:
+                smiles1, smiles2 = task.molecule_1.smiles, task.molecule_2.smiles
+                mixture = json.dumps([smiles1, 0.5, smiles2, 0.5])
+                df_pool.loc[len(df_pool)] = smiles1, smiles2, mixture, 0., task.id
+            df_pool.to_csv(f'{save_dir}/pool.csv', index=False)
+        else:
+            raise ValueError(f'unknown task: {margs.task}')
+        # skip active learning if the simulation is not finished.
+        simulation_finished = True
+        if tasks_active.count() != 2 and not simulation_finished:
+            return
+
+        if margs.learning_type == 'all':
+            tasks_unselected = tasks_all.filter_by(active=False, inactive=False)
+            for task in tqdm(tasks_unselected.all(), total=tasks_unselected.count()):
                 task.active = True
                 task.inactive = False
+                task.selected_id = 0
             session.commit()
-        """
-        if margs.stop_uncertainty is None:
-            return
-        if margs.stop_uncertainty < 0.0:
-            mols_all = session.query(SingleMolecule)
-            for mol in tqdm(mols_all.all(), total=mols_all.count()):
-                mol.active = True
-                mol.inactive = False
+        elif margs.learning_type == 'explorative_gpr_pu':
+            arguments = [
+                '--data_path_training', f'{save_dir}/train.csv',
+                '--data_path_pool', f'{save_dir}/pool.csv',
+                '--dataset_type', 'regression',
+                '--target_columns', 'target',
+                '--learning_type', 'explorative',
+                '--stop_cutoff', str(margs.stop_cutoff),
+                '--model_config_selector', margs.model_config,
+                '--save_dir', save_dir,
+                '--n_jobs', str(margs.n_jobs),
+                '--pure_columns'
+            ] + pure_columns
+            args = ActiveLearningArgs().parse_args(arguments)
+            active_learner = ActiveLearner(save_dir=args.save_dir,
+                                           selection_method=args.selection_method,
+                                           forgetter=args.forgetter,
+                                           model_selector=args.model_selector,
+                                           dataset_train_selector=args.data_train_selector,
+                                           dataset_pool_selector=args.data_pool_selector,
+                                           dataset_val_selector=args.data_val_selector,
+                                           metrics=args.metrics,
+                                           top_k_id=args.top_k_id,
+                                           model_evaluators=args.model_evaluators,
+                                           dataset_train_evaluators=args.data_train_evaluators,
+                                           dataset_pool_evaluators=args.data_pool_evaluators,
+                                           dataset_val_evaluators=args.data_val_evaluators,
+                                           yoked_learning_only=args.yoked_learning_only,
+                                           stop_size=args.stop_size,
+                                           stop_cutoff=args.stop_cutoff,
+                                           evaluate_stride=args.evaluate_stride,
+                                           output_details=args.output_details,
+                                           kernel=args.kernel_selector,
+                                           save_cpt_stride=args.save_cpt_stride,
+                                           seed=args.seed,
+                                           logger=args.logger)
+            active_learner.run(max_iter=args.max_iter)
+            df = pd.read_csv(f'{save_dir}/al_traj.csv')
+            current_selected_id = max([task.selected_id for task in tasks_active]) + 1
+            for idxs_add in df['id_add'].apply(lambda x: json.loads(x)):
+                for idx in idxs_add:
+                    task = tasks_pool.filter_by(id=idx).first()
+                    task.active = True
+                    task.inactive = False
+                    task.selected_id = current_selected_id
+                current_selected_id += 1
             session.commit()
-            return
-        args = ActiveLearningArgs()
-        args.dataset_type = 'regression'
-        args.save_dir = '../data'
-        n_jobs = mn_jobs
-        args.pure_columns = ['smiles']
-        args.target_columns = ['target']
-        args.graph_kernel_type = margs.graph_kernel_type
-        args.graph_hyperparameters = ['data/tMGR.json']
-        args.model_type = 'gpr'
-        args.alpha = 0.01
-        args.optimizer = None
-        args.batch_size = None
-        args.learning_algorithm = 'unsupervised'
-        args.add_size = 1
-        args.cluster_size = 1
-        args.pool_size = margs.pool_size
-        args.stop_size = 100000
-        args.stop_uncertainty = [margs.stop_uncertainty]
-        args.evaluate_stride = 0
-        args.seed = margs.seed
-
-        mols_all = session.query(SingleMolecule).filter_by(fail=False)
-        # random select 2 samples as the start of active learning.
-        if mols_all.filter_by(active=True).count() <= 1:
-            for mol in np.random.choice(mols_all.all(), 2, replace=False):
-                mol.active = True
-                mol.inactive = False
-            session.commit()
-
-        # get selected data set.
-        mols = mols_all.filter_by(active=True)
-        df = pd.DataFrame({'smiles': [mol.smiles for mol in mols],
-                           'target': [0.] * mols.count()})
-        dataset = Dataset.from_df(args, df)
-        dataset.update_args(args)
-        # get pool data set.
-        mols = mols_all.filter_by(active=False, inactive=False).limit(50000)
-        if mols.count() == 0:
-            return
-        df_pool = pd.DataFrame({'smiles': [mol.smiles for mol in mols],
-                                'target': [0.] * mols.count()})
-        dataset_pool = Dataset.from_df(args, df_pool)
-        dataset_pool.update_args(args)
-        # get full data set.
-        dataset_full = dataset.copy()
-        dataset_full.data = dataset.data + dataset_pool.data
-        dataset_full.unify_datatype(dataset_full.X_graph)
-        #
-        kernel_config = get_kernel_config(args, dataset_full, kernel_pkl=os.path.join(args.save_dir, 'kernel.pkl'))
-        # active learning
-        al = ActiveLearner(args, dataset, dataset_pool, kernel_config, kernel_config)
-        al.run()
-        if len(al.dataset) != 0:
-            smiles = [s.split(',')[0] for s in al.dataset.X_repr.ravel()]
-            for mol in tqdm(mols_all.all(), total=mols_all.count()):
-                if mol.smiles in smiles:
-                    mol.active = True
-                    mol.inactive = False
-        if len(al.dataset_pool) != 0:
-            smiles = [s.split(',')[0] for s in al.dataset_pool.X_repr.ravel()]
-            for mol in tqdm(mols_all.all(), total=mols_all.count()):
-                if mol.smiles in smiles:
-                    mol.active = False
-                    mol.inactive = True
-        session.commit()
-        """
+        elif margs.learning_type == 'exploitive':
+            # TODO
+            raise ValueError(f'learning_type not implemented yet: {margs.learning_type}')
+        else:
+            raise ValueError(f'unknown learning_type: {margs.learning_type}')
 
     @staticmethod
     def create_single_molecule_tasks():
@@ -162,7 +208,7 @@ class BaseTask(ABCTask, ABC):
                                                   commands=commands, save_running_time=True,
                                                   sh_index=True)
                 self.job_manager.submit(sh)
-                job.update_list('sh_file', [sh])
+                update_list(job, 'sh_file', [sh])
                 job.status = Status.SUBMITED
                 session.commit()
 
@@ -178,10 +224,11 @@ class BaseTask(ABCTask, ABC):
         -------
 
         """
-        self.job_manager.update_stored_jobs()
+        if self.job_manager is not None:
+            self.job_manager.update_stored_jobs()
         jobs_to_analyze = []
         for job in session.query(table).filter_by(status=Status.SUBMITED):
-            if not self.job_manager.is_running(job.slurm_name):
+            if self.job_manager is None or not self.job_manager.is_running(job.slurm_name):
                 jobs_to_analyze.append(job)
             if len(jobs_to_analyze) >= n_analyze:
                 break

@@ -14,7 +14,10 @@ from chemprop.train import make_predictions
 
 
 def submit(args: SubmitArgs):
-    used_resname = [mol.resname for mol in session.query(Molecule).all()]
+    if session.query(Molecule).count() == 0:
+        used_resname = []
+    else:
+        used_resname = [mol.resname for mol in session.query(Molecule).all()]
     for file in args.files:
         df = pd.read_csv(file)
         for i, row in tqdm(df.iterrows(), total=len(df)):
@@ -49,7 +52,7 @@ def predict(target_property: str):
     args.process_args()
     preds = make_predictions(args, smiles)
     for i, mol in enumerate(mols):
-        mol.update_dict('property_ml', {target_property: preds[i][0]})
+        update_dict(mol, 'property_ml', {target_property: preds[i][0]})
     session.commit()
 
 

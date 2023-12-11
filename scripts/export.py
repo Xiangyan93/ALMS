@@ -84,42 +84,24 @@ def export(args: ExportArgs):
             d['red_T'] += (np.asarray(T_list) / task.molecule.tc).tolist()
         pd.DataFrame(d).to_csv('hvap.csv', index=False)
     elif args.property == 'binding_fe':
-        df = pd.DataFrame({'drug_smiles': [], 'drug_name': [], 'excp_smiles': [], 'excp_name': [], 'binding_fe_de': [],
-                           'binding_fe_dd': [], 'binding_fe_ee': []})
-        for mol1 in mols:
-            if mol1.tag != 'drug':
+        df = pd.DataFrame({'drug_smiles': [], 'drug_name': [], 'excp_smiles': [], 'excp_name': [], 'binding_fe': []})
+        for task in session.query(DoubleMoleculeTask):
+            mol1 = task.molecule_1
+            mol2 = task.molecule_2
+            binding_fe_de = []
+            for job in task.md_binding:
+                fe = json.loads(job.result).get('binding_free_energy')
+                if fe:
+                    binding_fe_de.append(fe)
+            from scipy import stats
+            z_scores = np.abs(stats.zscore(binding_fe_de))
+            if max(z_scores) > 3:
+                print(z_scores, binding_fe_de)
+            if len(binding_fe_de) == 0:
                 continue
-            for mol2 in mols:
-                if mol2.tag != 'excp':
-                    continue
-                task = session.query(DoubleMoleculeTask).filter_by(molecules_id=f'{mol1.id}_{mol2.id}').first()
-                binding_fe_de = []
-                for job in task.md_binding:
-                    fe = json.loads(job.result).get('binding_free_energy')
-                    if fe and fe > -100:
-                        binding_fe_de.append(fe)
-                assert len(binding_fe_de) >= 5
-
-                task = session.query(DoubleMoleculeTask).filter_by(molecules_id=f'{mol1.id}_{mol1.id}').first()
-                binding_fe_dd = []
-                for job in task.md_binding:
-                    fe = json.loads(job.result).get('binding_free_energy')
-                    if fe and fe > -100:
-                        binding_fe_dd.append(fe)
-                assert len(binding_fe_dd) >= 5
-
-                task = session.query(DoubleMoleculeTask).filter_by(molecules_id=f'{mol2.id}_{mol2.id}').first()
-                binding_fe_ee = []
-                for job in task.md_binding:
-                    fe = json.loads(job.result).get('binding_free_energy')
-                    if fe and fe > -100:
-                        binding_fe_ee.append(fe)
-                if len(binding_fe_ee) < 5:
-                    print(binding_fe_ee)
-                # if np.min(binding_fe_dd + binding_fe_de + binding_fe_ee) < -50:
-                #     print(binding_fe_dd, binding_fe_de, binding_fe_ee)
-                df.loc[len(df)] = [mol1.smiles, mol1.name, mol2.smiles, mol2.name,
-                                   np.mean(binding_fe_de), np.mean(binding_fe_dd), np.mean(binding_fe_ee)]
+            assert len(binding_fe_de) >= 5
+            df.loc[len(df)] = [mol1.smiles, mol1.name, mol2.smiles, mol2.name,
+                               np.mean(binding_fe_de)]
         df.to_csv('binding_fe.csv', index=False)
     elif args.property is None:
         smiles = [task.molecule.smiles for task in session.query(SingleMoleculeTask)]

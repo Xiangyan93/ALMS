@@ -4,6 +4,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import re
+from scipy import stats
 from panedr.panedr import edr_to_df
 from simutools.simulator.program import Packmol, PLUMED
 from .base import BaseTask
@@ -36,6 +37,8 @@ class TaskBINDING(BaseTask):
         self.simulator = simulator
         self.packmol = packmol
         self.plumed = plumed
+        self.n_repeats = 10
+        self.n_fail = 5
 
     def initiation(self, args: MonitorArgs):
         self.create_double_molecule_tasks(rule=args.combination_rule, file=args.combination_file)
@@ -47,8 +50,9 @@ class TaskBINDING(BaseTask):
         tasks = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
         for task in tqdm(tasks, total=tasks.count()):
             fail_jobs = [job for job in task.md_binding if job.status == Status.FAILED]
-            if len(fail_jobs) <= 5:
-                task.create_jobs(task='md_binding', n_repeats=5 + len(fail_jobs), T_list=[298.], P_list=[1.])
+            if len(fail_jobs) <= self.n_fail:
+                task.create_jobs(task='md_binding', n_repeats=self.n_repeats + len(fail_jobs),
+                                 T_list=[298.], P_list=[1.])
         session.commit()
 
     def build(self, args: MonitorArgs, length: float = 5., n_water: int = 3000, upper_bound: float = 2.):
@@ -174,20 +178,30 @@ class TaskBINDING(BaseTask):
 
     def analyze(self, args: MonitorArgs):
         jobs_to_analyze = self.get_jobs_to_analyze(MD_BINDING, n_analyze=args.n_analyze)
-        if len(jobs_to_analyze) == 0:
-            return
-        jobs_dirs = [job.ms_dir for job in jobs_to_analyze]
-        results = self.analyze_multiprocess(self.analyze_single_job, jobs_dirs, args.n_jobs)
-        for i, job in enumerate(jobs_to_analyze):
-            result = results[i]
-            job.result = json.dumps(result)
-            if result.get('failed'):
-                job.status = Status.FAILED
-            elif result.get('continue'):
-                job.status = Status.NOT_CONVERGED
-            else:
-                job.status = Status.ANALYZED
-            session.commit()
+        if len(jobs_to_analyze) != 0:
+            jobs_dirs = [job.ms_dir for job in jobs_to_analyze]
+            results = self.analyze_multiprocess(self.analyze_single_job, jobs_dirs, args.n_jobs)
+            for i, job in enumerate(jobs_to_analyze):
+                result = results[i]
+                job.result = json.dumps(result)
+                if result.get('failed'):
+                    job.status = Status.FAILED
+                elif result.get('continue'):
+                    job.status = Status.NOT_CONVERGED
+                else:
+                    job.status = Status.ANALYZED
+                session.commit()
+        for task in session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True):
+            if Status.NOT_CONVERGED not in task.status('md_binding'):
+                if task.properties is None or json.loads(task.properties).get('binding_free_energy') is None:
+                    binding_free_energies = []
+                    for job in task.md_binding:
+                        if job.status == Status.ANALYZED:
+                            binding_free_energies.append(json.loads(job.result)['binding_free_energy'])
+                    z_scores = np.abs(stats.zscore(binding_free_energies))
+                    filtered_data = np.array(binding_free_energies)[(z_scores <= 3)]
+                    update_dict(task, 'properties', {'binding_free_energy': np.mean(filtered_data)})
+                    session.commit()
 
     def analyze_single_job(self, job_dir, check_converge: bool = True, cutoff_time: float = 60.):
         cwd = os.getcwd()
@@ -291,4 +305,5 @@ class TaskBINDING(BaseTask):
             if len(fail_jobs) >= 5:
                 task.active = False
                 task.inactive = True
+                task.fail = True
         session.commit()

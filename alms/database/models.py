@@ -89,9 +89,6 @@ class Molecule(Base):
     info = Column(Text)
     single_molecule_task = relationship('SingleMoleculeTask', uselist=False, back_populates='molecule')
 
-    def update_dict(self, attr: str, p_dict: Dict):
-        update_dict(self, attr, p_dict)
-
     def checkout(self, force_field: AMBER, simulator: Union[GROMACS]):
         cwd = os.getcwd()
         os.chdir(self.ms_dir)
@@ -151,6 +148,7 @@ class SingleMoleculeTask(Base):
     active = Column(Boolean, default=False)
     inactive = Column(Boolean, default=False)
     fail = Column(Boolean, default=False)
+    selected_id = Column(Integer)
     molecule_id = Column(Integer, ForeignKey('molecule.id'))
     molecule = relationship('Molecule', back_populates='single_molecule_task')
     qm_cv = relationship('QM_CV', back_populates='single_molecule_task')
@@ -217,6 +215,8 @@ class DoubleMoleculeTask(Base):
     active = Column(Boolean, default=False)
     inactive = Column(Boolean, default=False)
     fail = Column(Boolean, default=False)
+    selected_id = Column(Integer)
+    properties = Column(Text)
 
     molecules_id = Column(Text, unique=True)
 
@@ -301,12 +301,6 @@ class QM_CV(Base):
     def slurm_name(self) -> Optional[str]:
         return slurm_name(self)
 
-    def update_dict(self, attr: str, p_dict: Dict):
-        update_dict(self, attr, p_dict)
-
-    def update_list(self, attr: str, p_list: List):
-        update_list(self, attr, p_list)
-
     def delete(self, job_manager: Slurm = None):
         delete_job(job=self, session=session, job_manager=job_manager)
 
@@ -338,9 +332,6 @@ class MD_NPT(Base):
     @property
     def slurm_name(self) -> Optional[str]:
         return slurm_name(self)
-
-    def update_dict(self, attr: str, p_dict: Dict):
-        update_dict(self, attr, p_dict)
 
     def update_list(self, attr: str, p_list: List):
         update_list(self, attr, p_list)
@@ -378,12 +369,6 @@ class MD_SOLVATION(Base):
     def slurm_name(self) -> Optional[str]:
         return slurm_name(self)
 
-    def update_dict(self, attr: str, p_dict: Dict):
-        update_dict(self, attr, p_dict)
-
-    def update_list(self, attr: str, p_list: List):
-        update_list(self, attr, p_list)
-
     def delete(self, job_manager: Slurm = None):
         delete_job(job=self, session=session, job_manager=job_manager)
 
@@ -418,12 +403,6 @@ class MD_BINDING(Base):
     @property
     def slurm_name(self) -> Optional[str]:
         return slurm_name(self)
-
-    def update_dict(self, attr: str, p_dict: Dict):
-        update_dict(self, attr, p_dict)
-
-    def update_list(self, attr: str, p_list: List):
-        update_list(self, attr, p_list)
 
     def delete(self, job_manager: Slurm = None):
         delete_job(job=self, session=session, job_manager=job_manager)

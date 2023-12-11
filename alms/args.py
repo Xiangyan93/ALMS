@@ -33,11 +33,13 @@ class TaskArgs(Tap):
             return 2
 
 
-class ActiveLearningArgs(Tap):
-    strategy: Literal['all', 'explorative', 'exploitive'] = 'all'
+class ALArgs(Tap):
+    learning_type: Literal['all', 'explorative', 'exploitive', 'explorative_gpr_pu'] = 'all'
     """Active learning strategy"""
-    n_jobs: int = 1
-    """The cpu numbers used for parallel computing."""
+    model_config: str = None
+    """The configuration file of the ML model"""
+    stop_cutoff: float = None
+    """The cutoff of active learning"""
 
 
 class SoftwareArgs(Tap):
@@ -101,12 +103,15 @@ class JobManagerArgs(Tap):
 
     @cached_property
     def JobManager(self) -> Slurm:
-        job_manager = Slurm()
-        job_manager.update_stored_jobs()
+        try:
+            job_manager = Slurm()
+            job_manager.update_stored_jobs()
+        except:
+            job_manager = None
         return job_manager
 
 
-class MonitorArgs(TaskArgs, ActiveLearningArgs, SoftwareArgs, JobManagerArgs, Tap):
+class MonitorArgs(TaskArgs, ALArgs, SoftwareArgs, JobManagerArgs, Tap):
     n_jobs: int = 8
     """The number of CPU cores used in the monitor."""
     # controller args.
@@ -128,8 +133,6 @@ class MonitorArgs(TaskArgs, ActiveLearningArgs, SoftwareArgs, JobManagerArgs, Ta
     """Pressures for simulations."""
     graph_kernel_type: Literal['graph', 'pre-computed'] = None
     """The type of kernel to use."""
-    stop_uncertainty: float = None
-    """Tolerance of unsupervised active learning, should be a number from 0 to 1."""
     pool_size: int = None
     """
     A subset of the sample pool is randomly selected for active learning. 
