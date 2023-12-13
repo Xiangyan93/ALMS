@@ -38,7 +38,7 @@ class TaskBINDING(BaseTask):
         self.packmol = packmol
         self.plumed = plumed
         self.n_repeats = 10
-        self.n_fail = 5
+        self.success_rate = 0.1
 
     def initiation(self, args: MonitorArgs):
         self.create_double_molecule_tasks(rule=args.combination_rule, file=args.combination_file)
@@ -49,11 +49,11 @@ class TaskBINDING(BaseTask):
     def create(self, args: MonitorArgs):
         tasks = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
         for task in tqdm(tasks, total=tasks.count()):
-            fail_jobs = [job for job in task.md_binding if job.status == Status.FAILED]
-            if len(fail_jobs) <= self.n_fail:
-                task.create_jobs(task='md_binding', n_repeats=self.n_repeats + len(fail_jobs),
-                                 T_list=[298.], P_list=[1.])
-        session.commit()
+            n_fail = len([job for job in task.md_binding if job.status == Status.FAILED])
+            if n_fail + self.n_repeats > len(task.md_binding):
+                task.create_jobs(task='md_binding', n_repeats=self.n_repeats + n_fail, T_list=[298.], P_list=[1.])
+                session.commit()
+            assert len(task.md_binding) == self.n_repeats + n_fail
 
     def build(self, args: MonitorArgs, length: float = 5., n_water: int = 3000, upper_bound: float = 2.):
         cwd = os.getcwd()
@@ -191,13 +191,16 @@ class TaskBINDING(BaseTask):
                 else:
                     job.status = Status.ANALYZED
                 session.commit()
-        for task in session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True):
+        tasks_active = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
+        for task in tqdm(tasks_active, total=tasks_active.count()):
             if Status.NOT_CONVERGED not in task.status('md_binding'):
                 if task.properties is None or json.loads(task.properties).get('binding_free_energy') is None:
                     binding_free_energies = []
                     for job in task.md_binding:
                         if job.status == Status.ANALYZED:
                             binding_free_energies.append(json.loads(job.result)['binding_free_energy'])
+                    if len(binding_free_energies) < self.n_repeats:
+                        continue
                     z_scores = np.abs(stats.zscore(binding_free_energies))
                     filtered_data = np.array(binding_free_energies)[(z_scores <= 3)]
                     update_dict(task, 'properties', {'binding_free_energy': np.mean(filtered_data)})
@@ -301,8 +304,13 @@ class TaskBINDING(BaseTask):
     def update_fail_tasks(self):
         tasks = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
         for task in tqdm(tasks, total=tasks.count()):
-            fail_jobs = [job for job in task.md_binding if job.status == Status.FAILED]
-            if len(fail_jobs) >= 5:
+            n_success = n_fail = 0
+            for job in task.md_binding:
+                if job.status == Status.ANALYZED:
+                    n_success += 1
+                elif job.status == Status.FAILED:
+                    n_fail += 1
+            if n_fail > 10 and n_success / n_fail < self.success_rate:
                 task.active = False
                 task.inactive = True
                 task.fail = True

@@ -104,12 +104,15 @@ class BaseTask(ABCTask, ABC):
                 '--dataset_type', 'regression',
                 '--target_columns', 'target',
                 '--learning_type', 'explorative',
+                '--batch_size', str(margs.batch_size),
                 '--stop_cutoff', str(margs.stop_cutoff),
                 '--model_config_selector', margs.model_config,
                 '--save_dir', save_dir,
                 '--n_jobs', str(margs.n_jobs),
                 '--pure_columns'
             ] + pure_columns
+            if margs.n_query is not None:
+                arguments += ['--n_query', str(margs.n_query)]
             args = ActiveLearningArgs().parse_args(arguments)
             active_learner = ActiveLearner(save_dir=args.save_dir,
                                            selection_method=args.selection_method,

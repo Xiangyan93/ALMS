@@ -38,8 +38,13 @@ class ALArgs(Tap):
     """Active learning strategy"""
     model_config: str = None
     """The configuration file of the ML model"""
+    batch_size: int = 1
+    """number of samples added in each active learning iteration."""
     stop_cutoff: float = None
     """The cutoff of active learning"""
+    n_query: int = None
+    """number of samples to query in each active learning iteration. (default=None means query all samples in the 
+    pool set)"""
 
 
 class SoftwareArgs(Tap):
