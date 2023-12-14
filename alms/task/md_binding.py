@@ -318,4 +318,5 @@ class TaskBINDING(BaseTask):
             if task.properties is None or json.loads(task.properties).get('binding_free_energy') is None:
                 tasks_active.append(task)
             if len(tasks_active) == n_task:
-                return tasks_active
+                break
+        return tasks_active
