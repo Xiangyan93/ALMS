@@ -47,26 +47,18 @@ class TaskBINDING(BaseTask):
         super().active_learning(args)
 
     def create(self, args: MonitorArgs):
-        tasks = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
-        for task in tqdm(tasks, total=tasks.count()):
-            if task.properties is None or json.loads(task.properties).get('binding_free_energy') is None:
-                n_fail = len([job for job in task.md_binding if job.status == Status.FAILED])
-                if n_fail + self.n_repeats > len(task.md_binding):
-                    task.create_jobs(task='md_binding', n_repeats=self.n_repeats + n_fail, T_list=[298.], P_list=[1.])
-                    session.commit()
-                assert len(task.md_binding) == self.n_repeats + n_fail
+        tasks = self.get_active_tasks(n_task=args.n_task)
+        for task in tqdm(tasks, total=len(tasks)):
+            n_fail = len([job for job in task.md_binding if job.status == Status.FAILED])
+            if n_fail + self.n_repeats > len(task.md_binding):
+                task.create_jobs(task='md_binding', n_repeats=self.n_repeats + n_fail, T_list=[298.], P_list=[1.])
+                session.commit()
+            assert len(task.md_binding) == self.n_repeats + n_fail
 
     def build(self, args: MonitorArgs, length: float = 5., n_water: int = 3000, upper_bound: float = 2.):
         cwd = os.getcwd()
         # pick args.n_prepare tasks.
-        tasks = []
-        tasks_active = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
-        for task in tqdm(tasks_active, total=tasks_active.count()):
-            if task.properties is None or json.loads(task.properties).get('binding_free_energy') is None:
-                if Status.STARTED in task.status('md_binding'):
-                    tasks.append(task)
-                if len(tasks) == args.n_prepare:
-                    break
+        tasks = self.get_active_tasks(n_task=args.n_task)
         # checkout force field parameters for the molecules.
         for task in tqdm(tasks, total=len(tasks)):
             task.molecule_1.checkout(force_field=self.ff, simulator=self.simulator)
@@ -194,21 +186,20 @@ class TaskBINDING(BaseTask):
                 else:
                     job.status = Status.ANALYZED
                 session.commit()
-        tasks_active = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
-        for task in tqdm(tasks_active, total=tasks_active.count()):
-            if task.properties is None or json.loads(task.properties).get('binding_free_energy') is None:
-                if Status.NOT_CONVERGED not in task.status('md_binding'):
-                    binding_free_energies = []
-                    for job in task.md_binding:
-                        if job.status == Status.ANALYZED:
-                            binding_free_energies.append(json.loads(job.result)['binding_free_energy'])
-                    if len(binding_free_energies) < self.n_repeats:
-                        continue
-                    z_scores = np.abs(stats.zscore(binding_free_energies))
-                    filtered_data = np.array(binding_free_energies)[(z_scores <= 3)]
-                    update_dict(task, 'properties', {'binding_free_energy': np.mean(filtered_data),
-                                                     'binding_free_energy_std': np.std(filtered_data)})
-                    session.commit()
+        tasks = self.get_active_tasks(n_task=args.n_task)
+        for task in tqdm(tasks, total=len(tasks)):
+            if Status.NOT_CONVERGED not in task.status('md_binding'):
+                binding_free_energies = []
+                for job in task.md_binding:
+                    if job.status == Status.ANALYZED:
+                        binding_free_energies.append(json.loads(job.result)['binding_free_energy'])
+                if len(binding_free_energies) < self.n_repeats:
+                    continue
+                z_scores = np.abs(stats.zscore(binding_free_energies))
+                filtered_data = np.array(binding_free_energies)[(z_scores <= 3)]
+                update_dict(task, 'properties', {'binding_free_energy': np.mean(filtered_data),
+                                                 'binding_free_energy_std': np.std(filtered_data)})
+                session.commit()
 
     def analyze_single_job(self, job_dir, check_converge: bool = True, cutoff_time: float = 60.):
         cwd = os.getcwd()
@@ -305,18 +296,26 @@ class TaskBINDING(BaseTask):
             jobs_to_submit = session.query(MD_BINDING).filter_by(status=Status.EXTENDED)
             self.submit_jobs(args=args, jobs_to_submit=jobs_to_submit, extend=True)
 
-    def update_fail_tasks(self):
-        tasks = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
-        for task in tqdm(tasks, total=tasks.count()):
-            if task.properties is None or json.loads(task.properties).get('binding_free_energy') is None:
-                n_success = n_fail = 0
-                for job in task.md_binding:
-                    if job.status == Status.ANALYZED:
-                        n_success += 1
-                    elif job.status == Status.FAILED:
-                        n_fail += 1
-                if n_fail > 10 and n_success / n_fail < self.success_rate:
-                    task.active = False
-                    task.inactive = True
-                    task.fail = True
+    def update_fail_tasks(self, args: MonitorArgs):
+        tasks = self.get_active_tasks(n_task=100)
+        for task in tqdm(tasks, total=len(tasks)):
+            n_success = n_fail = 0
+            for job in task.md_binding:
+                if job.status == Status.ANALYZED:
+                    n_success += 1
+                elif job.status == Status.FAILED:
+                    n_fail += 1
+            if n_fail > 10 and n_success / n_fail < self.success_rate:
+                task.active = False
+                task.inactive = True
+                task.fail = True
         session.commit()
+
+    def get_active_tasks(self, n_task) -> List[DoubleMoleculeTask]:
+        tasks = session.query(DoubleMoleculeTask).filter_by(active=True)
+        tasks_active = []
+        for task in tasks:
+            if task.properties is None or json.loads(task.properties).get('binding_free_energy') is None:
+                tasks_active.append(task)
+            if len(tasks_active) == n_task:
+                return tasks_active

@@ -44,7 +44,7 @@ def monitor(args: MonitorArgs):
         print('\nStep6: extend.\n')
         task.extend(args)
         print('\nStep7: update failed mols.\n')
-        task.update_fail_tasks()
+        task.update_fail_tasks(args)
         print('Sleep %d minutes...' % args.t_sleep)
         time.sleep(args.t_sleep * 60)
 

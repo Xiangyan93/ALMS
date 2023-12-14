@@ -125,7 +125,9 @@ class MonitorArgs(TaskArgs, ALArgs, SoftwareArgs, JobManagerArgs, Tap):
     n_run: int = 20
     """The maximum number of running slurm jobs allowed."""
     n_analyze: int = 1000
-    """"""
+    """The maximum number of analyzing jobs allowed."""
+    n_task: int = 100
+    """The maximum number of tasks allowed."""
     t_sleep: int = 10
     """Sleep time for each iteration (mins). """
     n_conformer: int = 1

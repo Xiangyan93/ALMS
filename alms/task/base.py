@@ -162,7 +162,7 @@ class BaseTask(ABCTask, ABC):
         session.commit()
 
     @staticmethod
-    def create_double_molecule_tasks(rule: Literal['cross', 'full', 'specified'] = 'cross', file: str = None):
+    def create_double_molecule_tasks(rule: Literal['cross', 'full', 'self', 'specified'] = 'cross', file: str = None):
         mols = session.query(Molecule)
         # cross: cross combination of molecules with different tags (e.g. drug and excp).
         if rule == 'cross':

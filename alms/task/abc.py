@@ -39,5 +39,5 @@ class ABCTask(ABC):
         pass
 
     @abstractmethod
-    def update_fail_tasks(self):
+    def update_fail_tasks(self, args: MonitorArgs):
         pass
