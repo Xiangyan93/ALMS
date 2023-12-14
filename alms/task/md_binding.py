@@ -49,11 +49,12 @@ class TaskBINDING(BaseTask):
     def create(self, args: MonitorArgs):
         tasks = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
         for task in tqdm(tasks, total=tasks.count()):
-            n_fail = len([job for job in task.md_binding if job.status == Status.FAILED])
-            if n_fail + self.n_repeats > len(task.md_binding):
-                task.create_jobs(task='md_binding', n_repeats=self.n_repeats + n_fail, T_list=[298.], P_list=[1.])
-                session.commit()
-            assert len(task.md_binding) == self.n_repeats + n_fail
+            if task.properties is None or json.loads(task.properties).get('binding_free_energy') is None:
+                n_fail = len([job for job in task.md_binding if job.status == Status.FAILED])
+                if n_fail + self.n_repeats > len(task.md_binding):
+                    task.create_jobs(task='md_binding', n_repeats=self.n_repeats + n_fail, T_list=[298.], P_list=[1.])
+                    session.commit()
+                assert len(task.md_binding) == self.n_repeats + n_fail
 
     def build(self, args: MonitorArgs, length: float = 5., n_water: int = 3000, upper_bound: float = 2.):
         cwd = os.getcwd()
@@ -203,7 +204,8 @@ class TaskBINDING(BaseTask):
                         continue
                     z_scores = np.abs(stats.zscore(binding_free_energies))
                     filtered_data = np.array(binding_free_energies)[(z_scores <= 3)]
-                    update_dict(task, 'properties', {'binding_free_energy': np.mean(filtered_data)})
+                    update_dict(task, 'properties', {'binding_free_energy': np.mean(filtered_data),
+                                                     'binding_free_energy_std': np.std(filtered_data)})
                     session.commit()
 
     def analyze_single_job(self, job_dir, check_converge: bool = True, cutoff_time: float = 60.):
