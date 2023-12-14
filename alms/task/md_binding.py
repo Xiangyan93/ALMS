@@ -60,11 +60,13 @@ class TaskBINDING(BaseTask):
         cwd = os.getcwd()
         # pick args.n_prepare tasks.
         tasks = []
-        for task in session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True):
-            if Status.STARTED in task.status('md_binding'):
-                tasks.append(task)
-            if len(tasks) == args.n_prepare:
-                break
+        tasks_active = session.query(DoubleMoleculeTask).filter(DoubleMoleculeTask.active == True)
+        for task in tqdm(tasks_active, total=tasks_active.count()):
+            if task.properties is None or json.loads(task.properties).get('binding_free_energy') is None:
+                if Status.STARTED in task.status('md_binding'):
+                    tasks.append(task)
+                if len(tasks) == args.n_prepare:
+                    break
         # checkout force field parameters for the molecules.
         for task in tqdm(tasks, total=len(tasks)):
             task.molecule_1.checkout(force_field=self.ff, simulator=self.simulator)
