@@ -39,6 +39,7 @@ class TaskBINDING(BaseTask):
         self.plumed = plumed
         self.n_repeats = 10
         self.success_rate = 0.1
+        self.barrier = 50.
 
     def initiation(self, args: MonitorArgs):
         self.create_double_molecule_tasks(rule=args.combination_rule, file=args.combination_file)
@@ -126,7 +127,7 @@ class TaskBINDING(BaseTask):
                                                        group1=f'1-{natoms1}',
                                                        group2=f'{natoms1 + 1}-{natoms1 + natoms2}',
                                                        upper_bound=upper_bound,
-                                                       barrier=50)
+                                                       barrier=self.barrier)
                 # energy minimization
                 gmx.generate_mdp_from_template(**em_mdp_kwargs)
                 commands += [gmx.grompp(mdp='em.mdp', gro='initial.gro', top='topol.top', tpr='em.tpr',
@@ -190,16 +191,29 @@ class TaskBINDING(BaseTask):
         for task in tqdm(tasks, total=len(tasks)):
             if Status.NOT_CONVERGED not in task.status('md_binding'):
                 binding_free_energies = []
+                analyzed_jobs = []
                 for job in task.md_binding:
                     if job.status == Status.ANALYZED:
                         binding_free_energies.append(json.loads(job.result)['binding_free_energy'])
+                        analyzed_jobs.append(job)
                 if len(binding_free_energies) < self.n_repeats:
                     continue
                 z_scores = np.abs(stats.zscore(binding_free_energies))
-                filtered_data = np.array(binding_free_energies)[(z_scores <= 3)]
-                update_dict(task, 'properties', {'binding_free_energy': np.mean(filtered_data),
-                                                 'binding_free_energy_std': np.std(filtered_data)})
-                session.commit()
+                z_scores_tag = z_scores >= 2
+                any_job_failed = False
+                if z_scores_tag.sum() != 0:
+                    for i, job in enumerate(analyzed_jobs):
+                        if z_scores_tag[i] and not (- self.barrier <
+                                                    json.loads(job.result)['binding_free_energy'] <
+                                                    self.barrier):
+                            job.status = Status.FAILED
+                            session.commit()
+                            any_job_failed = True
+
+                if not any_job_failed:
+                    update_dict(task, 'properties', {'binding_free_energy': np.mean(binding_free_energies),
+                                                     'binding_free_energy_std': np.std(binding_free_energies)})
+                    session.commit()
 
     def analyze_single_job(self, job_dir, check_converge: bool = True, cutoff_time: float = 60.):
         cwd = os.getcwd()
