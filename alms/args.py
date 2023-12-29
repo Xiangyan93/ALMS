@@ -156,5 +156,5 @@ class MonitorArgs(TaskArgs, ALArgs, SoftwareArgs, JobManagerArgs, Tap):
 
 
 class ExportArgs(Tap):
-    property: Literal['density', 'cp', 'hvap', 'binding_fe'] = None
+    property: Literal['density', 'cp', 'hvap', 'binding_free_energy'] = None
     """The property to export. None will output molecules list."""

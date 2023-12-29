@@ -11,7 +11,7 @@ from alms.analysis import *
 def export(args: ExportArgs):
     if args.property in ['cp', 'density', 'hvap']:
         tasks = session.query(SingleMoleculeTask)
-    elif args.property in ['binding_fe']:
+    elif args.property in ['binding_free_energy']:
         tasks = session.query(DoubleMoleculeTask)
     else:
         raise ValueError(f'Invalid property: {args.property}')
@@ -83,26 +83,14 @@ def export(args: ExportArgs):
             d['hvap'] += hvap
             d['red_T'] += (np.asarray(T_list) / task.molecule.tc).tolist()
         pd.DataFrame(d).to_csv('hvap.csv', index=False)
-    elif args.property == 'binding_fe':
-        df = pd.DataFrame({'drug_smiles': [], 'drug_name': [], 'excp_smiles': [], 'excp_name': [], 'binding_fe': []})
+    elif args.property == 'binding_free_energy':
+        df = pd.DataFrame({'smiles1': [], 'name1': [], 'smiles2': [], 'name2': [], 'binding_free_energy': []})
         for task in session.query(DoubleMoleculeTask):
             mol1 = task.molecule_1
             mol2 = task.molecule_2
-            binding_fe_de = []
-            for job in task.md_binding:
-                fe = json.loads(job.result).get('binding_free_energy')
-                if fe:
-                    binding_fe_de.append(fe)
-            from scipy import stats
-            z_scores = np.abs(stats.zscore(binding_fe_de))
-            if max(z_scores) > 3:
-                print(z_scores, binding_fe_de)
-            if len(binding_fe_de) == 0:
-                continue
-            assert len(binding_fe_de) >= 5
             df.loc[len(df)] = [mol1.smiles, mol1.name, mol2.smiles, mol2.name,
-                               np.mean(binding_fe_de)]
-        df.to_csv('binding_fe.csv', index=False)
+                               json.loads(task.properties)['binding_free_energy']]
+        df.to_csv('binding_free_energy.csv', index=False)
     elif args.property is None:
         smiles = [task.molecule.smiles for task in session.query(SingleMoleculeTask)]
         al = [task.active for task in session.query(SingleMoleculeTask)]
