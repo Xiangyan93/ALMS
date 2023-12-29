@@ -171,7 +171,10 @@ class BaseTask(ABCTask, ABC):
                     mol2 = mols[j]
                     if i != j and mol1.tag == mol2.tag:
                         continue
-                    mid = f'{mol1.id}_{mol2.id}'
+                    if mol1.tag == 'drug' and mol2.tag == 'excp':
+                        mid = f'{mol1.id}_{mol2.id}'
+                    else:
+                        mid = f'{mol2.id}_{mol1.id}'
                     task = DoubleMoleculeTask(molecules_id=mid)
                     add_or_query(task, ['molecules_id'])
         # full: full combination of all molecules.
@@ -179,7 +182,10 @@ class BaseTask(ABCTask, ABC):
             for i, mol1 in enumerate(mols):
                 for j in range(i, mols.count()):
                     mol2 = mols[j]
-                    mid = f'{mol1.id}_{mol2.id}'
+                    if mol1.tag == 'drug' and mol2.tag == 'excp':
+                        mid = f'{mol1.id}_{mol2.id}'
+                    else:
+                        mid = f'{mol2.id}_{mol1.id}'
                     task = DoubleMoleculeTask(molecules_id=mid)
                     add_or_query(task, ['molecules_id'])
         # specified: specified combination of molecules through a file.
