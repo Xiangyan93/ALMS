@@ -138,13 +138,6 @@ class MonitorArgs(TaskArgs, ALArgs, SoftwareArgs, JobManagerArgs, Tap):
     """Number of temperatures for simultions."""
     P_list: List[float] = [1]
     """Pressures for simulations."""
-    graph_kernel_type: Literal['graph', 'pre-computed'] = None
-    """The type of kernel to use."""
-    pool_size: int = None
-    """
-    A subset of the sample pool is randomly selected for active learning. 
-    None means all samples are selected.
-    """
     seed: int = 0
     """Random seed."""
 
