@@ -6,6 +6,7 @@ import pandas as pd
 import re
 from scipy import stats
 from panedr.panedr import edr_to_df
+from sqlalchemy import or_
 from simutools.simulator.program import Packmol, PLUMED
 from .base import BaseTask
 from ..args import MonitorArgs
@@ -326,7 +327,8 @@ class TaskBINDING(BaseTask):
         session.commit()
 
     def get_active_tasks(self, n_task) -> List[DoubleMoleculeTask]:
-        tasks = session.query(DoubleMoleculeTask).filter_by(active=True)
+        tasks = session.query(DoubleMoleculeTask).filter(or_(DoubleMoleculeTask.active == True,
+                                                             DoubleMoleculeTask.sim_tag == True))
         tasks_active = []
         for task in tasks:
             if task.properties is None or json.loads(task.properties).get('binding_free_energy') is None:

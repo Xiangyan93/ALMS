@@ -84,13 +84,18 @@ def export(args: ExportArgs):
             d['red_T'] += (np.asarray(T_list) / task.molecule.tc).tolist()
         pd.DataFrame(d).to_csv('hvap.csv', index=False)
     elif args.property == 'binding_free_energy':
-        df = pd.DataFrame({'smiles1': [], 'name1': [], 'smiles2': [], 'name2': [], 'binding_free_energy': []})
+        df_train = pd.DataFrame({'smiles1': [], 'name1': [], 'smiles2': [], 'name2': [], 'binding_free_energy': []})
+        df_test = pd.DataFrame({'smiles1': [], 'name1': [], 'smiles2': [], 'name2': []})
         for task in session.query(DoubleMoleculeTask):
             mol1 = task.molecule_1
             mol2 = task.molecule_2
-            df.loc[len(df)] = [mol1.smiles, mol1.name, mol2.smiles, mol2.name,
-                               json.loads(task.properties)['binding_free_energy']]
-        df.to_csv('binding_free_energy.csv', index=False)
+            if task.properties is None or 'binding_free_energy' not in json.loads(task.properties):
+                df_test.loc[len(df_test)] = [mol1.smiles, mol1.name, mol2.smiles, mol2.name]
+            else:
+                df_train.loc[len(df_train)] = [mol1.smiles, mol1.name, mol2.smiles, mol2.name,
+                                               json.loads(task.properties)['binding_free_energy']]
+        df_train.to_csv('binding_free_energy_train.csv', index=False)
+        df_test.to_csv('binding_free_energy_test.csv', index=False)
     elif args.property is None:
         smiles = [task.molecule.smiles for task in session.query(SingleMoleculeTask)]
         al = [task.active for task in session.query(SingleMoleculeTask)]

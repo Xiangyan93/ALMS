@@ -148,13 +148,13 @@ class SingleMoleculeTask(Base):
     active = Column(Boolean, default=False)
     inactive = Column(Boolean, default=False)
     fail = Column(Boolean, default=False)
+    sim_tag = Column(Boolean, default=False)
     selected_id = Column(Integer)
     molecule_id = Column(Integer, ForeignKey('molecule.id'))
     molecule = relationship('Molecule', back_populates='single_molecule_task')
     qm_cv = relationship('QM_CV', back_populates='single_molecule_task')
     md_npt = relationship('MD_NPT', back_populates='single_molecule_task')
     md_solvation = relationship('MD_SOLVATION', back_populates='single_molecule_task')
-
     @property
     def name(self) -> str:
         return f'mol_{self.molecule_id}'
@@ -215,6 +215,7 @@ class DoubleMoleculeTask(Base):
     active = Column(Boolean, default=False)
     inactive = Column(Boolean, default=False)
     fail = Column(Boolean, default=False)
+    sim_tag = Column(Boolean, default=False)
     selected_id = Column(Integer)
     properties = Column(Text)
 
