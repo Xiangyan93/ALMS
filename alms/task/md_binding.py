@@ -327,8 +327,7 @@ class TaskBINDING(BaseTask):
         session.commit()
 
     def get_active_tasks(self, n_task) -> List[DoubleMoleculeTask]:
-        tasks = session.query(DoubleMoleculeTask).filter(or_(DoubleMoleculeTask.active == True,
-                                                             DoubleMoleculeTask.sim_tag == True))
+        tasks = session.query(DoubleMoleculeTask).filter_by(active=True, sim_tag=False)
         tasks_active = []
         for task in tasks:
             if task.properties is None or json.loads(task.properties).get('binding_free_energy') is None:
