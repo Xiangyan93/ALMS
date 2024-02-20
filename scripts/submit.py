@@ -14,32 +14,22 @@ from chemprop.train import make_predictions
 
 
 def submit(args: SubmitArgs):
-    if session.query(Molecule).count() == 0:
-        used_resname = []
-    else:
-        used_resname = [mol.resname for mol in session.query(Molecule).all()]
     for file in args.files:
         df = pd.read_csv(file)
         for i, row in tqdm(df.iterrows(), total=len(df)):
             smiles = mol_filter(smiles=row['smiles'],
                                 excluded_smarts=args.excluded_smarts,
                                 heavy_atoms=args.heavy_atoms)
+            name = row.get('name') or random_string(8)
             if smiles is not None:
-                name = row.get('name') or random_string(8)
-                if row.get('resname') is None:
-                    resname = random_string(3)
-                    while resname in used_resname:
-                        resname = random_string(3)
-                    used_resname.append(resname)
-                else:
-                    resname = row.get('resname')
+                resname = random_string(3)
                 mol = Molecule(smiles=smiles, name=name, resname=resname, tag=args.tag)
                 add_or_query(mol, ['smiles'])
     session.commit()
 
 
 def predict(target_property: str):
-    mols = session.query(Molecule)
+    mols = session.query(Molecule).all()[30000:100000]
     smiles = []
     for mol in mols:
         smiles.append([mol.smiles])
@@ -57,7 +47,7 @@ def predict(target_property: str):
 
 
 if __name__ == '__main__':
-    submit(args=SubmitArgs().parse_args())
+    # submit(args=SubmitArgs().parse_args())
     predict('tt')
     predict('tb')
     predict('tc')

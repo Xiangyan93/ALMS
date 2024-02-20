@@ -85,7 +85,7 @@ class TaskBINDING(BaseTask):
                 else:
                     pdb_files = [f'{mol1.ms_dir}/{mol1.resname}.pdb', f'{mol2.ms_dir}/{mol2.resname}.pdb', 'tip3p.pdb']
                     n_mol_list = [1, 1, n_water]
-                    mol_names = [mol1.resname, mol2.resname, 'SOL']
+                    mol_names = [mol1.resname, mol2.resname, 'SOL'] if mol1.resname != mol2.resname else [mol1.resname, mol2.resname + '2', 'SOL']
                     top_dirs = [f'{mol1.ms_dir}/checkout', f'{mol2.ms_dir}/checkout', 'checkout']
                 charges = mol1.formal_charge + mol2.formal_charge
                 if charges > 0:

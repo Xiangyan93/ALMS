@@ -21,16 +21,30 @@ class SubmitArgs(Tap):
 class TaskArgs(Tap):
     task: Literal['qm_cv', 'md_npt', 'md_binding', 'md_solvation']
     """The task of molecular simulation"""
-    combination_rule: Literal['cross', 'full', 'self', 'specified'] = 'cross'
+    combination_rule: Literal['cross', 'full', 'self', 'specified', 'cross_and_self'] = 'cross_and_self'
     """The combination rule to create double molecule tasks"""
     combination_file: str = None
     """The combination file to create double molecule tasks"""
+
     @property
     def task_nmol(self) -> int:
-        if self.task in ['qm_cv', 'md_npt']:
+        if self.task in ['qm_cv', 'md_npt', 'md_solvation']:
             return 1
         else:
             return 2
+
+    @property
+    def property_name(self) -> str:
+        if self.task == 'qm_cv':
+            return 'heat_capacity'
+        elif self.task == 'md_npt':
+            return 'density'
+        elif self.task == 'md_binding':
+            return 'binding_free_energy'
+        elif self.task == 'md_solvation':
+            return 'solvation_free_energy'
+        else:
+            raise ValueError(f'Unsupported task: {self.task}')
 
 
 class ALArgs(Tap):
@@ -45,7 +59,7 @@ class ALArgs(Tap):
     n_query: int = None
     """number of samples to query in each active learning iteration. (default=None means query all samples in the 
     pool set)"""
-
+    
 
 class SoftwareArgs(Tap):
     # QM softwares
@@ -149,5 +163,5 @@ class MonitorArgs(TaskArgs, ALArgs, SoftwareArgs, JobManagerArgs, Tap):
 
 
 class ExportArgs(Tap):
-    property: Literal['density', 'cp', 'hvap', 'binding_free_energy'] = None
+    property: Literal['density', 'cp', 'hvap', 'binding_free_energy', 'solvation_free_energy'] = None
     """The property to export. None will output molecules list."""

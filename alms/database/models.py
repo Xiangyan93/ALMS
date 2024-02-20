@@ -83,7 +83,7 @@ class Molecule(Base):
     id = Column(Integer, primary_key=True)
     smiles = Column(Text, unique=True)
     name = Column(Text, unique=True)
-    resname = Column(Text, unique=True)
+    resname = Column(Text)
     property_ml = Column(Text)
     tag = Column(Text)
     info = Column(Text)
