@@ -187,6 +187,8 @@ class BaseTask(ABCTask, ABC):
                 mols2 = mols.filter_by(tag=group2).all()
                 for mol1 in tqdm(mols1, total=len(mols1)):
                     for mol2 in tqdm(mols2, total=len(mols2)):
+                        if group1 == group2 and mol1.id >= mol2.id:
+                            continue
                         mid = f'{mol1.id}_{mol2.id}'
                         task = DoubleMoleculeTask(molecules_id=mid)
                         add_or_query(task, ['molecules_id'])
