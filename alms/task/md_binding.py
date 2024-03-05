@@ -43,7 +43,7 @@ class TaskBINDING(BaseTask):
         self.barrier = 50.
 
     def initiation(self, args: MonitorArgs):
-        self.create_double_molecule_tasks(rule=args.combination_rule, file=args.combination_file)
+        self.create_double_molecule_tasks(group1=args.group1, group2=args.group2, file=args.task_file)
 
     def active_learning(self, args: MonitorArgs):
         super().active_learning(args)

@@ -21,10 +21,12 @@ class SubmitArgs(Tap):
 class TaskArgs(Tap):
     task: Literal['qm_cv', 'md_npt', 'md_binding', 'md_solvation']
     """The task of molecular simulation"""
-    combination_rule: Literal['cross', 'full', 'self', 'specified', 'cross_and_self'] = 'cross_and_self'
-    """The combination rule to create double molecule tasks"""
-    combination_file: str = None
-    """The combination file to create double molecule tasks"""
+    group1: str = None
+    """The first group tag of the task"""
+    group2: str = None
+    """The second group tag of the task"""
+    task_file: str = None
+    """The task file to create double molecule tasks"""
 
     @property
     def task_nmol(self) -> int:
@@ -156,9 +158,7 @@ class MonitorArgs(TaskArgs, ALArgs, SoftwareArgs, JobManagerArgs, Tap):
     """Random seed."""
 
     def process_args(self) -> None:
-        if self.combination_file is not None:
-            assert self.combination_rule == 'specified', ('combination_rule must be specified when combination_file is '
-                                                          'not None.')
+        if self.task_file is not None:
             assert self.task == 'md_binding', 'combination_file is only valid for md_binding task.'
 
 

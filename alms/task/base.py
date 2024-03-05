@@ -161,6 +161,7 @@ class BaseTask(ABCTask, ABC):
                     if not task.active and not task.inactive:
                         task.inactive = True
                 session.commit()
+                os.remove(f'{save_dir}/kernel_selector.pkl')
             elif margs.learning_type == 'explorative':
                 raise NotImplementedError
             elif margs.learning_type == 'exploitive':
@@ -177,53 +178,25 @@ class BaseTask(ABCTask, ABC):
         session.commit()
 
     @staticmethod
-    def create_double_molecule_tasks(rule: Literal['cross', 'full', 'self', 'specified', 'cross_and_self'] = 'cross_and_self', 
-                                     file: str = None):
+    def create_double_molecule_tasks(group1: str = None, group2: str = None, file: str = None):
         mols = session.query(Molecule)
-        if rule == 'cross_and_self':
-            for i, mol1 in enumerate(mols):
-                for j in range(i, mols.count()):
-                    mol2 = mols[j]
-                    if i != j and mol1.tag == mol2.tag:
-                        continue
-                    if mol1.tag == 'excp' and mol2.tag == 'drug':
-                        mid = f'{mol2.id}_{mol1.id}'
-                    else:
+        if group1 is not None:
+            mols1 = mols.filter_by(tag=group1).all()
+            if group2 is not None:
+                # cross combination of molecules with different tags (e.g. drug and excp).
+                mols2 = mols.filter_by(tag=group2).all()
+                for mol1 in tqdm(mols1, total=len(mols1)):
+                    for mol2 in tqdm(mols2, total=len(mols2)):
                         mid = f'{mol1.id}_{mol2.id}'
+                        task = DoubleMoleculeTask(molecules_id=mid)
+                        add_or_query(task, ['molecules_id'])
+            else:
+                # self combination of molecules with the same tag.
+                for mol1 in tqdm(mols1, total=len(mols1)):
+                    mid = f'{mol1.id}_{mol1.id}'
                     task = DoubleMoleculeTask(molecules_id=mid)
                     add_or_query(task, ['molecules_id'])
-        # cross: cross combination of molecules with different tags (e.g. drug and excp).
-        elif rule == 'cross':
-            for i, mol1 in enumerate(mols):
-                for j in range(i + 1, mols.count()):
-                    mol2 = mols[j]
-                    if mol1.tag == mol2.tag:
-                        continue
-                    if mol1.tag == 'excp' and mol2.tag == 'drug':
-                        mid = f'{mol2.id}_{mol1.id}'
-                    else:
-                        mid = f'{mol1.id}_{mol2.id}'
-                    task = DoubleMoleculeTask(molecules_id=mid)
-                    add_or_query(task, ['molecules_id'])
-        # full: full combination of all molecules.
-        elif rule == 'full':
-            for i, mol1 in enumerate(mols):
-                for j in range(i, mols.count()):
-                    mol2 = mols[j]
-                    if mol1.tag == 'excp' and mol2.tag == 'drug':
-                        mid = f'{mol2.id}_{mol1.id}'
-                    else:
-                        mid = f'{mol1.id}_{mol2.id}'
-                    task = DoubleMoleculeTask(molecules_id=mid)
-                    add_or_query(task, ['molecules_id'])
-        # specified: specified combination of molecules through a file.
-        elif rule == 'self':
-            for i, mol1 in enumerate(mols):
-                mid = f'{mol1.id}_{mol1.id}'
-                task = DoubleMoleculeTask(molecules_id=mid)
-                add_or_query(task, ['molecules_id'])
-        elif rule == 'specified':
-            assert file is not None
+        if file is not None:
             df = pd.read_csv(file)
             for i, row in df.iterrows():
                 name_mol1, name_mol2 = row.tolist()[:2]

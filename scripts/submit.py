@@ -29,7 +29,7 @@ def submit(args: SubmitArgs):
 
 
 def predict(target_property: str):
-    mols = session.query(Molecule).all()[30000:100000]
+    mols = session.query(Molecule)
     smiles = []
     for mol in mols:
         smiles.append([mol.smiles])
@@ -47,7 +47,7 @@ def predict(target_property: str):
 
 
 if __name__ == '__main__':
-    # submit(args=SubmitArgs().parse_args())
-    predict('tt')
-    predict('tb')
-    predict('tc')
+    submit(args=SubmitArgs().parse_args())
+    # predict('tt')
+    # predict('tb')
+    # predict('tc')
