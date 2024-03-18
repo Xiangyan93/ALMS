@@ -258,9 +258,15 @@ class DoubleMoleculeTask(Base):
         if task == 'md_binding':
             for T in T_list:
                 for P in P_list:
+                    existed_seeds = [job.seed for job in self.md_binding.filter_by(T=T, P=P)]
+                    n_new = n_repeats - len(existed_seeds)
                     for seed in range(n_repeats):
-                        md_binding = MD_BINDING(double_molecule_task_id=self.id, T=T, P=P, seed=seed)
-                        add_or_query(md_binding, ['double_molecule_task_id', 'T', 'P', 'seed'])
+                        if n_new == 0:
+                            break
+                        if seed not in existed_seeds:
+                            md_binding = MD_BINDING(double_molecule_task_id=self.id, T=T, P=P, seed=seed)
+                            add_or_query(md_binding, ['double_molecule_task_id', 'T', 'P', 'seed'])
+                            n_new -= 1
         else:
             raise ValueError
 
