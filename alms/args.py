@@ -113,6 +113,8 @@ class JobManagerArgs(Tap):
     """The number of CPU nodes used in each slurm job."""
     ntasks: int = 8
     """The number of CPU cores used in each slurm job."""
+    gpu: str = None
+    """The type of GPU to submit."""
     n_gpu: int = 0
     """The number of GPU used in each slurm job."""
     mem: int = None
@@ -165,3 +167,5 @@ class MonitorArgs(TaskArgs, ALArgs, SoftwareArgs, JobManagerArgs, Tap):
 class ExportArgs(Tap):
     property: Literal['density', 'cp', 'hvap', 'binding_free_energy', 'solvation_free_energy'] = None
     """The property to export. None will output molecules list."""
+    with_prediction: bool = False
+    """output the machine learning predicted properties of molecules not simulated"""

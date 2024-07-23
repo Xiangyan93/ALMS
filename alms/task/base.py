@@ -215,7 +215,8 @@ class BaseTask(ABCTask, ABC):
                 name = job.name + '_extend' if extend else job.name
                 commands = json.loads(job.commands_extend) if extend else json.loads(job.commands_mdrun)
                 sh = self.job_manager.generate_sh(name=name, path=job.ms_dir,
-                                                  partition=args.partition, ntasks=args.ntasks, n_gpu=args.n_gpu,
+                                                  partition=args.partition, ntasks=args.ntasks, 
+                                                  gpu=args.gpu, n_gpu=args.n_gpu,
                                                   memory=args.mem, walltime=args.walltime, exclude=args.exclude,
                                                   commands=commands, save_running_time=True,
                                                   sh_index=True)
