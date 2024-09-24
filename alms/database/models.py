@@ -259,6 +259,8 @@ class DoubleMoleculeTask(Base):
             for T in T_list:
                 for P in P_list:
                     for seed in range(n_repeats):
+                        if len(self.md_binding) >= n_repeats:
+                            break
                         md_binding = MD_BINDING(double_molecule_task_id=self.id, T=T, P=P, seed=seed)
                         add_or_query(md_binding, ['double_molecule_task_id', 'T', 'P', 'seed'])
         else:
